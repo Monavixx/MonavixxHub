@@ -1,0 +1,87 @@
+@Host = https://localhost:7275
+@token = eyJhbGciOiJodHRwOi8vd3d3LnczLm9yZy8yMDAxLzA0L3htbGRzaWctbW9yZSNobWFjLXNoYTI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoibW9uYXZpeHgiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9lbWFpbGFkZHJlc3MiOiJkcGVyZWx5Z2luMEBnbWFpbC5jb20iLCJleHAiOjE3NzQzMzE3NjQsImlzcyI6Ik1vbmF2aXh4SHViIiwiYXVkIjoiTW9uYXZpeHhIdWIifQ.-rCYEYfF6ylK6Nc2ex0ehRldx-jKhenIwu900mrcC-I
+@ImageId = 1556b4ac-ba67-43cc-b576-6bec0a3f809e
+
+
+GET {{Host}}/api/Flashcards/
+Accept: application/json
+Authorization: Bearer {{token}}
+###
+POST {{Host}}/api/Auth/register/
+Accept: application/json
+Content-Type: application/json
+
+{
+  "username": "monavixx",
+  "email": "dperelygin0@gmail.com",
+  "password": "adminqwerty"
+}
+
+###
+POST {{Host}}/api/Auth/login/
+Accept: application/json
+Content-Type: application/json
+
+{
+  "usernameoremail": "dperelygin0@gmail.com",
+  "password": "adminqwerty"
+}
+
+### Создать флэшкарту с картинкой
+POST {{Host}}/api/flashcards
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="front"
+
+Cat
+--boundary
+Content-Disposition: form-data; name="back"
+
+Кошка
+--boundary
+Content-Disposition: form-data; name="transcription"
+
+kæt
+--boundary
+Content-Disposition: form-data; name="image"; filename="cat.jpg"
+Content-Type: image/jpeg
+
+< ./cat.jpg
+--boundary--
+
+
+### Создать флэшкарту с картинкой
+POST {{Host}}/api/flashcards
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="front"
+
+Hello
+--boundary
+Content-Disposition: form-data; name="back"
+
+Привет
+--boundary
+Content-Disposition: form-data; name="transcription"
+
+həˈloʊ
+--boundary
+Content-Disposition: form-data; name="image"; filename="cat.jpg"
+Content-Type: image/jpeg
+
+< ./cat.jpg
+--boundary--
+
+###
+GET {{Host}}/api/Flashcards/all/
+Accept: application/json
+Authorization: Bearer {{token}}
+
+###
+GET {{Host}}/api/Image/{{ImageId}}/
+Accept: application/json
+Authorization: Bearer {{token}}
