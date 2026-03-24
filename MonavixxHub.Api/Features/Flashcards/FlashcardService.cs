@@ -26,7 +26,7 @@ public class FlashcardService (IImageService imageService, AppDbContext dbContex
             OwnerId = userId,
             Front = dto.Front,
             Back = dto.Back,
-            Transcription = dto.Transcription ?? "",
+            Transcription = dto.Transcription,
             CreatedAt = now,
             UpdatedAt = now,
             ImageId = image?.Id
@@ -36,10 +36,8 @@ public class FlashcardService (IImageService imageService, AppDbContext dbContex
         return flashcard;
     }
 
-    public async ValueTask<Flashcard> PatchAsync(Guid id, PatchFlashcardDto dto, int userId)
+    public async ValueTask PatchAsync(Flashcard flashcard, PatchFlashcardDto dto)
     {
-        Flashcard flashcard = await FindFlashcard(id, userId);
-
         if (dto.Image is not null)
         {
             if (flashcard.ImageId is not null)
@@ -55,12 +53,10 @@ public class FlashcardService (IImageService imageService, AppDbContext dbContex
             flashcard.Front = dto.Front;
         flashcard.UpdatedAt = DateTimeOffset.UtcNow;
         await dbContext.SaveChangesAsync();
-        return flashcard;
     }
 
-    public async ValueTask<Flashcard> UpdateAsync(Guid id, UpdateFlashcardDto dto, int userId)
+    public async ValueTask UpdateAsync(Flashcard flashcard, UpdateFlashcardDto dto)
     {
-        Flashcard flashcard = await FindFlashcard(id, userId);
         flashcard.Front = dto.Front;
         flashcard.Back = dto.Back;
         flashcard.Transcription = dto.Transcription;
@@ -72,7 +68,6 @@ public class FlashcardService (IImageService imageService, AppDbContext dbContex
         }
         flashcard.UpdatedAt = DateTimeOffset.UtcNow;
         await dbContext.SaveChangesAsync();
-        return flashcard;
     }
 
     public IQueryable<Flashcard> GetAll(int userId)
@@ -80,37 +75,23 @@ public class FlashcardService (IImageService imageService, AppDbContext dbContex
         return dbContext.Flashcards.Where(x => x.OwnerId == userId);
     }
 
-    public async ValueTask DeleteAsync(Guid id, int userId)
+    public async ValueTask DeleteAsync(Flashcard flashcard)
     {
-        Guid? imageId = null;
-        try
-        {
-            imageId = await dbContext.Flashcards
-                .Where(x => x.OwnerId == userId && x.Id == id)
-                .Select(x => x.ImageId)
-                .SingleAsync();
-        }
-        catch (InvalidOperationException ex)
-        {
-            throw new UserDoesNotHaveFlashcardWithSuchId(ex);
-        }
-        if(imageId is not null)
-            await imageService.DecrementRcAndDeleteIfUnusedAsync(imageId.Value);
-        await dbContext.Flashcards.Where(x => x.OwnerId == userId && x.Id == id)
-            .ExecuteDeleteAsync();
+        if(flashcard.ImageId is not null)
+            await imageService.DecrementRcAndDeleteIfUnusedAsync(flashcard.ImageId.Value);
+        dbContext.Remove(flashcard);
+        await dbContext.SaveChangesAsync();
     }
 
-    private async ValueTask<Flashcard> FindFlashcard(Guid id, int userId)
+    public async ValueTask<bool> IsPublicAsync(Guid id)
     {
-        try
-        {
-            return await dbContext.Flashcards
-                .Where(x => x.OwnerId == userId && x.Id == id)
-                .SingleAsync();
-        }
-        catch (InvalidOperationException ex)
-        {
-            throw new UserDoesNotHaveFlashcardWithSuchId(ex);
-        }
+        return await dbContext.Flashcards
+            .AnyAsync(x => x.Id == id && x.Entries
+                .Any(a => a.FlashcardSet.IsPublic));
+    }
+
+    public async ValueTask<Flashcard> GetAsync(Guid id)
+    {
+        return await dbContext.Flashcards.FindAsync(id) ?? throw new FlashcardNotFoundException();
     }
 }

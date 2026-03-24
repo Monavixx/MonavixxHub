@@ -1,8 +1,10 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MonavixxHub.Api.Features.Flashcards.Authorization;
 using MonavixxHub.Api.Features.Flashcards.DTOs;
 using MonavixxHub.Api.Features.Flashcards.Exceptions;
+using MonavixxHub.Api.Features.Flashcards.Models;
 
 namespace MonavixxHub.Api.Features.Flashcards;
 
@@ -13,7 +15,7 @@ public class FlashcardsController : ControllerBase
 {
     protected int CurrentUserId => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
     [HttpGet("all")]
-    public IActionResult Get([FromServices] FlashcardService flashcardService)
+    public IActionResult GetAll([FromServices] FlashcardService flashcardService)
     {
         return Ok(flashcardService.GetAll(CurrentUserId).AsEnumerable()
             .Select(GetFlashcardDto.FromFlashcard));
@@ -26,16 +28,7 @@ public class FlashcardsController : ControllerBase
         try
         {
             var flashcard = await flashcardService.CreateAsync(dto, CurrentUserId);
-            return Ok(new GetFlashcardDto
-            {
-                CreatedAt = flashcard.CreatedAt,
-                UpdatedAt = flashcard.UpdatedAt,
-                Transcription = flashcard.Transcription,
-                Id = flashcard.Id,
-                ImageId = flashcard.ImageId,
-                Back = flashcard.Back,
-                Front = flashcard.Front
-            });
+            return Ok(GetFlashcardDto.FromFlashcard(flashcard));
         }
         catch (Exception ex)
         {
@@ -45,68 +38,50 @@ public class FlashcardsController : ControllerBase
 
     [HttpPatch("{id:guid}")]
     public async ValueTask<IActionResult> Patch(Guid id, [FromForm] PatchFlashcardDto dto,
-        [FromServices] FlashcardService flashcardService)
+        [FromServices] FlashcardService flashcardService,
+        [FromServices] IAuthorizationService authorizationService)
     {
-        try
+        return await EditAccess(id, flashcardService, authorizationService, async flashcard =>
         {
-            var flashcard = await flashcardService.PatchAsync(id, dto, CurrentUserId);
-            return Ok(new GetFlashcardDto
-            {
-                CreatedAt = flashcard.CreatedAt,
-                UpdatedAt = flashcard.UpdatedAt,
-                Transcription = flashcard.Transcription,
-                Id = flashcard.Id,
-                ImageId = flashcard.ImageId,
-                Back = flashcard.Back,
-                Front = flashcard.Front
-            });
-        }
-        catch (UserDoesNotHaveFlashcardWithSuchId ex)
-        {
-            return NotFound(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
-        }
+            await flashcardService.PatchAsync(flashcard, dto);
+            return Ok(GetFlashcardDto.FromFlashcard(flashcard));
+        });
     }
     [HttpPut("{id:guid}")]
     public async ValueTask<IActionResult> Update(Guid id, [FromForm] UpdateFlashcardDto dto,
-        [FromServices] FlashcardService flashcardService)
+        [FromServices] FlashcardService flashcardService,
+        [FromServices] IAuthorizationService authorizationService)
     {
-        try
+        return await EditAccess(id, flashcardService, authorizationService, async flashcard =>
         {
-            var flashcard = await flashcardService.UpdateAsync(id, dto, CurrentUserId);
-            return Ok(new GetFlashcardDto
-            {
-                CreatedAt = flashcard.CreatedAt,
-                UpdatedAt = flashcard.UpdatedAt,
-                Transcription = flashcard.Transcription,
-                Id = flashcard.Id,
-                ImageId = flashcard.ImageId,
-                Back = flashcard.Back,
-                Front = flashcard.Front
-            });
-        }
-        catch (UserDoesNotHaveFlashcardWithSuchId ex)
-        {
-            return NotFound(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
-        }
+            await flashcardService.UpdateAsync(flashcard, dto);
+            return Ok(GetFlashcardDto.FromFlashcard(flashcard));
+        });
     }
 
     [HttpDelete("{id:guid}")]
-    public async ValueTask<IActionResult> Delete(Guid id, [FromServices] FlashcardService flashcardService)
+    public async ValueTask<IActionResult> Delete(Guid id, [FromServices] FlashcardService flashcardService,
+        [FromServices] IAuthorizationService authorizationService)
+    {
+        return await EditAccess(id, flashcardService, authorizationService, async flashcard =>
+        {
+            await flashcardService.DeleteAsync(flashcard);
+            return NoContent();
+        });
+    }
+
+    private async ValueTask<IActionResult> EditAccess(Guid id,
+        FlashcardService flashcardService, IAuthorizationService authorizationService,
+        Func<Flashcard, ValueTask<IActionResult>> func)
     {
         try
         {
-            await flashcardService.DeleteAsync(id, CurrentUserId);
-            return NoContent();
+            var flashcard = await flashcardService.GetAsync(id);
+            var authRes = await authorizationService.AuthorizeAsync(User, flashcard, Requirements.Flashcard.EditAccess);
+            if (!authRes.Succeeded) return Forbid();
+            return await func(flashcard);
         }
-        catch (UserDoesNotHaveFlashcardWithSuchId ex)
+        catch (FlashcardNotFoundException ex)
         {
             return NotFound(ex.Message);
         }

@@ -1,13 +1,16 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using MonavixxHub.Api.Common;
+using MonavixxHub.Api.Common.Authorization;
 using MonavixxHub.Api.Common.Options;
 using MonavixxHub.Api.Features.Auth;
 using MonavixxHub.Api.Features.Auth.Middlewares;
 using MonavixxHub.Api.Features.Flashcards;
+using MonavixxHub.Api.Features.Flashcards.Authorization;
 using MonavixxHub.Api.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -21,6 +24,9 @@ builder.Services.AddOpenApi();
 builder.Services.Configure<StorageOptions>(builder.Configuration.GetSection("Storage"));
 builder.Services.AddScoped<IImageService, ImageService>();
 builder.Services.AddScoped<FlashcardService>();
+builder.Services.AddScoped<FlashcardSetService>();
+builder.Services.AddSingleton<IAuthorizationHandler, FlashcardSetAuthorizationHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler, FlashcardAuthorizationHandler>();
 
 builder.Services.AddDbContext<AppDbContext>(optionsBuilder =>
 {

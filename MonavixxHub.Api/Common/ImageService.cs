@@ -74,29 +74,32 @@ public class ImageService : IImageService
     }
 
     private string NewImageFilename()
-    {
-        string filename;
-        do
-            filename = Guid.NewGuid().ToString("N");
-        while (File.Exists(Path.Combine(_storageOptions.ImageFolder, filename)));
-        return filename;
-    }
+        => Guid.NewGuid().ToString("N");
 
     public async ValueTask DeleteImageAsync(Guid imageId)
     {
-        if (await _dbContext.Images.Where(i => i.Id == imageId).ExecuteDeleteAsync() == 0)
-            throw new ImageNotFoundException();
+        Image? image = await _dbContext.Images.FindAsync(imageId);
+        if(image is null) throw new ImageNotFoundException();
+        _dbContext.Remove(image);
+        DeleteImageFile(image);
+        await _dbContext.SaveChangesAsync();
     }
 
     public async ValueTask DecrementRcAndDeleteIfUnusedAsync(Guid imageId)
     {
-        int num = await _dbContext.Images.Where(i => i.Id == imageId).ExecuteUpdateAsync(u =>
+        Image? image = await _dbContext.Images.FindAsync(imageId);
+        if(image is null) throw new ImageNotFoundException();
+        if (--image.ReferenceCount <= 0)
         {
-            u.SetProperty(x => x.ReferenceCount, x => x.ReferenceCount - 1);
-        });
-        if(num == 0) 
-            throw new ImageNotFoundException();
-        await _dbContext.Images.Where(i => i.Id == imageId && i.ReferenceCount <= 0).ExecuteDeleteAsync();
+            _dbContext.Remove(image);
+            DeleteImageFile(image);
+        }
+        await _dbContext.SaveChangesAsync();
+    }
+
+    private void DeleteImageFile(Image image)
+    {
+        File.Delete(Path.Combine(_storageOptions.ImageFolder, image.Path));
     }
 
     public async ValueTask IncrementRcAsync(Guid imageId)
