@@ -8,35 +8,60 @@ using MonavixxHub.Api.Features.Flashcards.Models;
 
 namespace MonavixxHub.Api.Features.Flashcards;
 
+/// <summary>
+/// Contains endpoints to work with flashcards. This includes CRUD operations.
+/// </summary>
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class FlashcardsController : ControllerBase
 {
     protected int CurrentUserId => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+    
     [HttpGet("all")]
+    [ProducesResponseType<IEnumerable<GetFlashcardDto>>(StatusCodes.Status200OK)]
     public IActionResult GetAll([FromServices] FlashcardService flashcardService)
     {
-        return Ok(flashcardService.GetAll(CurrentUserId).AsEnumerable()
-            .Select(GetFlashcardDto.FromFlashcard));
+        return Ok(flashcardService.GetAll(CurrentUserId)
+            .Select(flashcard => new GetFlashcardDto
+            {
+                CreatedAt = flashcard.CreatedAt,
+                UpdatedAt = flashcard.UpdatedAt,
+                Transcription = flashcard.Transcription,
+                Id = flashcard.Id,
+                ImageId = flashcard.ImageId,
+                Back = flashcard.Back,
+                Front = flashcard.Front
+            }));
+    }
+
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType<GetFlashcardDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async ValueTask<IActionResult> Get(Guid id, [FromServices] FlashcardService flashcardService,
+        [FromServices] IAuthorizationService authorizationService)
+    {
+        var flashcard = await flashcardService.GetAsync(id);
+        var authRes =
+            await authorizationService.AuthorizeAsync(User, flashcard, Requirements.Flashcard.ReadAccess);
+        if (!authRes.Succeeded) return Forbid();
+        return Ok(GetFlashcardDto.FromFlashcard(flashcard));
     }
 
     [HttpPost]
+    [ProducesResponseType<GetFlashcardDto>(StatusCodes.Status201Created)]
     public async ValueTask<IActionResult> Create([FromForm] CreateFlashcardDto dto,
         [FromServices] FlashcardService flashcardService)
     {
-        try
-        {
-            var flashcard = await flashcardService.CreateAsync(dto, CurrentUserId);
-            return Ok(GetFlashcardDto.FromFlashcard(flashcard));
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
-        }
+        var flashcard = await flashcardService.CreateAsync(dto, CurrentUserId);
+        return CreatedAtAction(nameof(Get), new { id = flashcard.Id }, GetFlashcardDto.FromFlashcard(flashcard));
     }
 
     [HttpPatch("{id:guid}")]
+    [ProducesResponseType<GetFlashcardDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async ValueTask<IActionResult> Patch(Guid id, [FromForm] PatchFlashcardDto dto,
         [FromServices] FlashcardService flashcardService,
         [FromServices] IAuthorizationService authorizationService)
@@ -48,6 +73,9 @@ public class FlashcardsController : ControllerBase
         });
     }
     [HttpPut("{id:guid}")]
+    [ProducesResponseType<GetFlashcardDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async ValueTask<IActionResult> Update(Guid id, [FromForm] UpdateFlashcardDto dto,
         [FromServices] FlashcardService flashcardService,
         [FromServices] IAuthorizationService authorizationService)
@@ -60,6 +88,9 @@ public class FlashcardsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async ValueTask<IActionResult> Delete(Guid id, [FromServices] FlashcardService flashcardService,
         [FromServices] IAuthorizationService authorizationService)
     {
@@ -74,20 +105,9 @@ public class FlashcardsController : ControllerBase
         FlashcardService flashcardService, IAuthorizationService authorizationService,
         Func<Flashcard, ValueTask<IActionResult>> func)
     {
-        try
-        {
-            var flashcard = await flashcardService.GetAsync(id);
-            var authRes = await authorizationService.AuthorizeAsync(User, flashcard, Requirements.Flashcard.EditAccess);
-            if (!authRes.Succeeded) return Forbid();
-            return await func(flashcard);
-        }
-        catch (FlashcardNotFoundException ex)
-        {
-            return NotFound(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
-        }
+        var flashcard = await flashcardService.GetAsync(id);
+        var authRes = await authorizationService.AuthorizeAsync(User, flashcard, Requirements.Flashcard.EditAccess);
+        if (!authRes.Succeeded) return Forbid();
+        return await func(flashcard);
     }
 }

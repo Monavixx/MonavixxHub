@@ -1,13 +1,12 @@
 using System.Security.Cryptography;
-using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using MonavixxHub.Api.Common.Exceptions;
-using MonavixxHub.Api.Common.Models;
 using MonavixxHub.Api.Common.Options;
+using MonavixxHub.Api.Features.Images.Exceptions;
+using MonavixxHub.Api.Features.Images.Models;
 using MonavixxHub.Api.Infrastructure;
 
-namespace MonavixxHub.Api.Common;
+namespace MonavixxHub.Api.Features.Images;
 // TODO: Add compression
 public class ImageService : IImageService
 {
@@ -27,9 +26,9 @@ public class ImageService : IImageService
         return await File.ReadAllBytesAsync(Path.Combine(_storageOptions.ImageFolder, image.Path));
     }
 
-    public ValueTask<Image?> GetImageAsync(Guid imageId)
+    public async ValueTask<Image> GetImageAsync(Guid imageId)
     {
-        return _dbContext.Images.FindAsync(imageId);
+        return await _dbContext.Images.FindAsync(imageId) ?? throw new ImageNotFoundException();
     }
 
     public async ValueTask<Image> SaveImageAsync(IFormFile file, int initialReferenceCount = 1)
@@ -56,9 +55,7 @@ public class ImageService : IImageService
             }
         }
 
-        MimeKit.MimeTypes.TryGetExtension(mimeType, out var extension);
-        string path = NewImageFilename();
-        if (!string.IsNullOrEmpty(extension)) path += extension;
+        string path = NewImageFilename(mimeType);
         await File.WriteAllBytesAsync(Path.Combine(_storageOptions.ImageFolder, path), image);
 
         Image img = new()
@@ -72,10 +69,11 @@ public class ImageService : IImageService
         await _dbContext.SaveChangesAsync();
         return img;
     }
-
-    private string NewImageFilename()
-        => Guid.NewGuid().ToString("N");
-
+    private string NewImageFilename(string mimeType)
+    {
+        MimeKit.MimeTypes.TryGetExtension(mimeType, out var extension);
+        return Guid.NewGuid().ToString("N") + extension;
+    }
     public async ValueTask DeleteImageAsync(Guid imageId)
     {
         Image? image = await _dbContext.Images.FindAsync(imageId);
@@ -91,8 +89,8 @@ public class ImageService : IImageService
         if(image is null) throw new ImageNotFoundException();
         if (--image.ReferenceCount <= 0)
         {
-            _dbContext.Remove(image);
             DeleteImageFile(image);
+            _dbContext.Remove(image);
         }
         await _dbContext.SaveChangesAsync();
     }

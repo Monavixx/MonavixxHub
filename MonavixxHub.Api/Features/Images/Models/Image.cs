@@ -1,6 +1,4 @@
-using MonavixxHub.Api.Features.Flashcards.Models;
-
-namespace MonavixxHub.Api.Common.Models;
+namespace MonavixxHub.Api.Features.Images.Models;
 
 public class Image
 {

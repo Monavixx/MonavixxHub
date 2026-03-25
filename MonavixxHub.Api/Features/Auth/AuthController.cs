@@ -8,32 +8,23 @@ namespace MonavixxHub.Api.Features.Auth;
 public class AuthController (AuthService authService) : ControllerBase
 {
     [HttpPost("register")]
+    [ProducesResponseType<AuthResponseDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async ValueTask<IActionResult> Register([FromBody] RegisterDto registerDto)
     {
-        try
-        {
-            var response =
-                await authService.RegisterAsync(registerDto.Username, registerDto.Password, registerDto.Email);
-            return Ok(response);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        var response =
+            await authService.RegisterAsync(registerDto.Username, registerDto.Password, registerDto.Email);
+        return Ok(response);
     }
 
     [HttpPost("login")]
+    [ProducesResponseType<AuthResponseDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async ValueTask<IActionResult> Login([FromBody] LoginDto loginDto)
     {
-        try
-        {
-            var response =
-                await authService.LoginAsync(loginDto.UsernameOrEmail, loginDto.Password);
-            return Ok(response);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        var response =
+            await authService.LoginAsync(loginDto.UsernameOrEmail, loginDto.Password);
+        return Ok(response);
     }
 }

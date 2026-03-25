@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using MonavixxHub.Api.Common.Models;
 using MonavixxHub.Api.Features.Auth.Models;
 using MonavixxHub.Api.Features.Flashcards.Models;
+using MonavixxHub.Api.Features.Images.Models;
 
 namespace MonavixxHub.Api.Infrastructure;
 

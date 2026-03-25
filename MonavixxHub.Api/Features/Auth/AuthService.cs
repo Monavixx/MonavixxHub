@@ -28,7 +28,7 @@ public class AuthService(
             throw new UserDoesNotExistException();
         if (passwordHashService.Verify(password, user.PasswordHash))
             return new AuthResponseDto(tokenService.GenerateToken(user), user.Username);
-        throw new WrongPasswordException();
+        throw new WrongUsernameOrPasswordException();
     }
 
     public async Task<AuthResponseDto> RegisterAsync(string username, string password, string email)
@@ -36,7 +36,7 @@ public class AuthService(
         if (await dbContext.Users.AnyAsync(u => u.Email == email))
             throw new UserWithSuchEmailAlreadyExistsException();
         if (await dbContext.Users.AnyAsync(u => u.Username == username))
-            throw new UserWithSuchEmailAlreadyExistsException();
+            throw new UserWithSuchUsernameAlreadyExistsException();
         User user = new User()
         {
             Email = email,

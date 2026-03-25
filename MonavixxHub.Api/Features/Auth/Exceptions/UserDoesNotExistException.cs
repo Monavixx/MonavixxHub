@@ -1,4 +1,7 @@
+using System.Net;
+using MonavixxHub.Api.Common.Exceptions;
+
 namespace MonavixxHub.Api.Features.Auth.Exceptions;
 
-public class UserDoesNotExistException (Exception? inner = null)
-    : Exception ($"User does not exist", inner);
+public class UserDoesNotExistException()
+    : AppBaseException ("User does not exist", HttpStatusCode.NotFound);

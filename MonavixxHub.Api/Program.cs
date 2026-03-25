@@ -1,17 +1,17 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using MonavixxHub.Api.Common;
-using MonavixxHub.Api.Common.Authorization;
+using MonavixxHub.Api.Common.Exceptions;
 using MonavixxHub.Api.Common.Options;
 using MonavixxHub.Api.Features.Auth;
 using MonavixxHub.Api.Features.Auth.Middlewares;
 using MonavixxHub.Api.Features.Flashcards;
 using MonavixxHub.Api.Features.Flashcards.Authorization;
+using MonavixxHub.Api.Features.Images;
 using MonavixxHub.Api.Infrastructure;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +27,8 @@ builder.Services.AddScoped<FlashcardService>();
 builder.Services.AddScoped<FlashcardSetService>();
 builder.Services.AddSingleton<IAuthorizationHandler, FlashcardSetAuthorizationHandler>();
 builder.Services.AddSingleton<IAuthorizationHandler, FlashcardAuthorizationHandler>();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 builder.Services.AddDbContext<AppDbContext>(optionsBuilder =>
 {
@@ -53,9 +55,12 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
 app.UseHttpsRedirection();
+
+app.UseExceptionHandler();
 
 app.UseAuthentication();
 app.UseMiddleware<ValidateUserMiddleware>();

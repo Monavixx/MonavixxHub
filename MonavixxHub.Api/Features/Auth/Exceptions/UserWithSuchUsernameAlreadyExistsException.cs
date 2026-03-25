@@ -1,4 +1,7 @@
+using System.Net;
+using MonavixxHub.Api.Common.Exceptions;
+
 namespace MonavixxHub.Api.Features.Auth.Exceptions;
 
 public class UserWithSuchUsernameAlreadyExistsException(Exception? inner = null) 
-    : Exception($"This username is already being used", inner);
+    : AppBaseException("This username is already being used", HttpStatusCode.Conflict);

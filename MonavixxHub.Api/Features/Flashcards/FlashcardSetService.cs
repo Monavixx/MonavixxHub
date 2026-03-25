@@ -25,13 +25,6 @@ public class FlashcardSetService (AppDbContext dbContext)
 
     public async ValueTask<FlashcardSet> UpdateAsync(FlashcardSet flashcardSet, UpdateFlashcardSetDto dto)
     {
-        /*await dbContext.FlashcardSets.Where(x=>x.Id==id)
-            .ExecuteUpdateAsync(u =>
-        {
-            u.SetProperty(x=>x.Name, dto.Name);
-            u.SetProperty(x=>x.ParentSetId, dto.ParentSetId);
-            u.SetProperty(x=>x.IsPublic, dto.IsPublic);
-        });*/
         flashcardSet.Name = dto.Name;
         flashcardSet.ParentSetId = dto.ParentSetId;
         flashcardSet.IsPublic = dto.IsPublic;
@@ -39,9 +32,40 @@ public class FlashcardSetService (AppDbContext dbContext)
         return flashcardSet;
     }
 
-    public async ValueTask AddFlashcardAsync(Guid flashcardId, Guid setId, int userId)
+    public async ValueTask AddFlashcardAsync(Guid flashcardSetId, Guid flashcardId, int order)
     {
-        
+        await ThrowIfIncludesFlashcardAsync(flashcardSetId, flashcardId);
+        await AddFlashcardWithoutCheckAsync(flashcardSetId, flashcardId, order);
+    }
+
+    public async ValueTask AddFlashcardToTheEndAsync(Guid flashcardSetId, Guid flashcardId)
+    {
+        await ThrowIfIncludesFlashcardAsync(flashcardSetId, flashcardId);
+        int maxOrder = await dbContext.FlashcardSetEntries.Where(x => x.FlashcardSetId == flashcardSetId)
+            .MaxAsync(x => (int?)x.Order) ?? 0;
+        await AddFlashcardWithoutCheckAsync(flashcardSetId, flashcardId, maxOrder + 1);
+    }
+
+    private async ValueTask AddFlashcardWithoutCheckAsync(Guid flashcardSetId, Guid flashcardId, int order)
+    {
+        dbContext.FlashcardSetEntries.Add(new FlashcardSetEntry()
+        {
+            FlashcardId = flashcardId,
+            Order = order,
+            FlashcardSetId = flashcardSetId
+        });
+        await dbContext.SaveChangesAsync();
+    }
+
+    private async ValueTask ThrowIfIncludesFlashcardAsync(Guid flashcardSetId, Guid flashcardId)
+    {
+        if (await HasFlashcardAsync(flashcardSetId, flashcardId)) throw new FlashcardAlreadyInSetException();
+    }
+
+    public async ValueTask<bool> HasFlashcardAsync(Guid flashcardSetId, Guid flashcardId)
+    {
+        return await dbContext.FlashcardSetEntries.AnyAsync(x =>
+            x.FlashcardId == flashcardId && x.FlashcardSetId == flashcardSetId);
     }
 
     public async ValueTask<FlashcardSet> GetAsync(Guid setId)
