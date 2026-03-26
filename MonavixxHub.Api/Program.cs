@@ -7,9 +7,11 @@ using MonavixxHub.Api.Common.Exceptions;
 using MonavixxHub.Api.Common.Options;
 using MonavixxHub.Api.Features.Auth;
 using MonavixxHub.Api.Features.Auth.Middlewares;
-using MonavixxHub.Api.Features.Flashcards;
 using MonavixxHub.Api.Features.Flashcards.Authorization;
-using MonavixxHub.Api.Features.Images;
+using MonavixxHub.Api.Features.Flashcards.Controllers;
+using MonavixxHub.Api.Features.Flashcards.Services;
+using MonavixxHub.Api.Features.Images.Authorization;
+using MonavixxHub.Api.Features.Images.Services;
 using MonavixxHub.Api.Infrastructure;
 using Scalar.AspNetCore;
 
@@ -25,10 +27,15 @@ builder.Services.Configure<StorageOptions>(builder.Configuration.GetSection("Sto
 builder.Services.AddScoped<IImageService, ImageService>();
 builder.Services.AddScoped<FlashcardService>();
 builder.Services.AddScoped<FlashcardSetService>();
+builder.Services.AddScoped<FlashcardSetEntryController>();
 builder.Services.AddSingleton<IAuthorizationHandler, FlashcardSetAuthorizationHandler>();
-builder.Services.AddSingleton<IAuthorizationHandler, FlashcardAuthorizationHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, FlashcardAuthorizationHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, ImageAuthorizationHandler>();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
+
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
 
 builder.Services.AddDbContext<AppDbContext>(optionsBuilder =>
 {

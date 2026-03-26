@@ -6,51 +6,52 @@ using MonavixxHub.Api.Features.Images.Exceptions;
 using MonavixxHub.Api.Features.Images.Models;
 using MonavixxHub.Api.Infrastructure;
 
-namespace MonavixxHub.Api.Features.Images;
+namespace MonavixxHub.Api.Features.Images.Services;
 // TODO: Add compression
-public class ImageService : IImageService
-{
-    private readonly AppDbContext _dbContext;
-    private readonly StorageOptions _storageOptions;
 
-    public ImageService(IOptions<StorageOptions> options, AppDbContext dbContext)
-    {
-        _dbContext = dbContext;
-        _storageOptions = options.Value;
-    }
+/// <summary>
+/// Provides memory-efficient methods to create, retrieve and delete images.
+/// Stores images as files on the local filesystem.
+/// Deduplicates images using SHA-256 hashing with byte-level verification.
+/// </summary>
+public class ImageService(IOptions<StorageOptions> options, AppDbContext dbContext) : IImageService
+{
+    private readonly StorageOptions _storageOptions = options.Value;
 
     public async ValueTask<byte[]> GetImageBytesAsync(Guid imageId)
     {
-        var image = await _dbContext.Images.FindAsync(imageId);
+        var image = await dbContext.Images.FindAsync(imageId);
         if (image is null) throw new ImageNotFoundException();
         return await File.ReadAllBytesAsync(Path.Combine(_storageOptions.ImageFolder, image.Path));
     }
 
     public async ValueTask<Image> GetImageAsync(Guid imageId)
     {
-        return await _dbContext.Images.FindAsync(imageId) ?? throw new ImageNotFoundException();
+        return await dbContext.Images.FindAsync(imageId) ?? throw new ImageNotFoundException();
     }
 
-    public async ValueTask<Image> SaveImageAsync(IFormFile file, int initialReferenceCount = 1)
+    public async ValueTask<Image> SaveImageAsync(IFormFile file, int addReferenceCount = 1)
     {
+        if(addReferenceCount < 1) throw new ArgumentOutOfRangeException(nameof(addReferenceCount));
         using var ms = new MemoryStream();
         await file.CopyToAsync(ms);
-        return await SaveImageAsync(ms.ToArray(), file.ContentType);
+        return await SaveImageAsync(ms.ToArray(), file.ContentType, addReferenceCount);
     }
 
-    public async ValueTask<Image> SaveImageAsync(byte[] image, string mimeType, int initialReferenceCount = 1)
+    public async ValueTask<Image> SaveImageAsync(byte[] image, string mimeType, int addReferenceCount = 1)
     {
+        if(addReferenceCount < 1) throw new ArgumentOutOfRangeException(nameof(addReferenceCount));
+        
         Directory.CreateDirectory(_storageOptions.ImageFolder);
         byte[] hash = SHA256.HashData(image);
-        var query = _dbContext.Images.Where(i => i.Hash == hash);
+        var query = dbContext.Images.Where(i => i.Hash == hash);
         await query.LoadAsync();
         foreach (var i in query)
         {
-            if (image.SequenceEqual((await File.ReadAllBytesAsync(Path.Combine(_storageOptions.ImageFolder, i.Path)))
-                    .AsEnumerable()))
+            if (image.SequenceEqual(await File.ReadAllBytesAsync(Path.Combine(_storageOptions.ImageFolder, i.Path))))
             {
-                i.ReferenceCount++;
-                await _dbContext.SaveChangesAsync();
+                i.ReferenceCount += addReferenceCount;
+                await dbContext.SaveChangesAsync();
                 return i;
             }
         }
@@ -63,10 +64,10 @@ public class ImageService : IImageService
             Hash = hash,
             Path = path,
             MimeType = mimeType,
-            ReferenceCount = initialReferenceCount,
+            ReferenceCount = addReferenceCount,
         };
-        _dbContext.Images.Add(img);
-        await _dbContext.SaveChangesAsync();
+        dbContext.Images.Add(img);
+        await dbContext.SaveChangesAsync();
         return img;
     }
     private string NewImageFilename(string mimeType)
@@ -76,23 +77,23 @@ public class ImageService : IImageService
     }
     public async ValueTask DeleteImageAsync(Guid imageId)
     {
-        Image? image = await _dbContext.Images.FindAsync(imageId);
+        Image? image = await dbContext.Images.FindAsync(imageId);
         if(image is null) throw new ImageNotFoundException();
-        _dbContext.Remove(image);
+        dbContext.Remove(image);
         DeleteImageFile(image);
-        await _dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync();
     }
 
     public async ValueTask DecrementRcAndDeleteIfUnusedAsync(Guid imageId)
     {
-        Image? image = await _dbContext.Images.FindAsync(imageId);
+        Image? image = await dbContext.Images.FindAsync(imageId);
         if(image is null) throw new ImageNotFoundException();
         if (--image.ReferenceCount <= 0)
         {
             DeleteImageFile(image);
-            _dbContext.Remove(image);
+            dbContext.Remove(image);
         }
-        await _dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync();
     }
 
     private void DeleteImageFile(Image image)
@@ -102,7 +103,7 @@ public class ImageService : IImageService
 
     public async ValueTask IncrementRcAsync(Guid imageId)
     {
-        int num = await _dbContext.Images.Where(i => i.Id == imageId).ExecuteUpdateAsync(u =>
+        int num = await dbContext.Images.Where(i => i.Id == imageId).ExecuteUpdateAsync(u =>
         {
             u.SetProperty(x => x.ReferenceCount, x => x.ReferenceCount + 1);
         });

@@ -1,6 +1,7 @@
 using System.Reflection.Metadata;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using MonavixxHub.Api.Features.Auth.Extensions;
 using MonavixxHub.Api.Features.Flashcards.Models;
 
 namespace MonavixxHub.Api.Features.Flashcards.Authorization;
@@ -14,7 +15,7 @@ public class FlashcardSetAuthorizationHandler : AuthorizationHandler<FlashcardSe
         if (resource.IsPublic && requirement.AccessType is FlashcardSetAccessType.Read) context.Succeed(requirement);
         else
         {
-            var userId = int.Parse(context.User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var userId = context.User.GetUserId();
             if (resource.OwnerId == userId)
                 context.Succeed(requirement);
         }

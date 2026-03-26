@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using MonavixxHub.Api.Features.Auth.Extensions;
 using MonavixxHub.Api.Infrastructure;
 
 namespace MonavixxHub.Api.Features.Auth.Middlewares;
@@ -27,7 +28,7 @@ public class ValidateUserMiddleware
                 return;
             }
 
-            var userId = int.Parse(context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+            var userId = context.User.GetUserId();
             if (!await dbContext.Users.AnyAsync(x => x.Id == userId))
             {
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;

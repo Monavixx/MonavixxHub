@@ -1,12 +1,13 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MonavixxHub.Api.Features.Auth.Extensions;
 using MonavixxHub.Api.Features.Flashcards.Authorization;
 using MonavixxHub.Api.Features.Flashcards.DTOs;
-using MonavixxHub.Api.Features.Flashcards.Exceptions;
 using MonavixxHub.Api.Features.Flashcards.Models;
+using MonavixxHub.Api.Features.Flashcards.Services;
 
-namespace MonavixxHub.Api.Features.Flashcards;
+namespace MonavixxHub.Api.Features.Flashcards.Controllers;
 
 /// <summary>
 /// Contains endpoints to work with flashcards. This includes CRUD operations.
@@ -16,13 +17,11 @@ namespace MonavixxHub.Api.Features.Flashcards;
 [Route("api/[controller]")]
 public class FlashcardsController : ControllerBase
 {
-    protected int CurrentUserId => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-    
     [HttpGet("all")]
     [ProducesResponseType<IEnumerable<GetFlashcardDto>>(StatusCodes.Status200OK)]
     public IActionResult GetAll([FromServices] FlashcardService flashcardService)
     {
-        return Ok(flashcardService.GetAll(CurrentUserId)
+        return Ok(flashcardService.GetAll(User.GetUserId())
             .Select(flashcard => new GetFlashcardDto
             {
                 CreatedAt = flashcard.CreatedAt,
@@ -54,7 +53,7 @@ public class FlashcardsController : ControllerBase
     public async ValueTask<IActionResult> Create([FromForm] CreateFlashcardDto dto,
         [FromServices] FlashcardService flashcardService)
     {
-        var flashcard = await flashcardService.CreateAsync(dto, CurrentUserId);
+        var flashcard = await flashcardService.CreateAsync(dto, User.GetUserId());
         return CreatedAtAction(nameof(Get), new { id = flashcard.Id }, GetFlashcardDto.FromFlashcard(flashcard));
     }
 

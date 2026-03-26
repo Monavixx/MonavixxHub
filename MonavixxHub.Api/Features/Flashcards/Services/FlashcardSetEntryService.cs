@@ -1,43 +1,38 @@
 using Microsoft.EntityFrameworkCore;
-using MonavixxHub.Api.Features.Flashcards.DTOs;
 using MonavixxHub.Api.Features.Flashcards.Exceptions;
 using MonavixxHub.Api.Features.Flashcards.Models;
 using MonavixxHub.Api.Infrastructure;
 
-namespace MonavixxHub.Api.Features.Flashcards;
+namespace MonavixxHub.Api.Features.Flashcards.Services;
 
-public class FlashcardSetService (AppDbContext dbContext)
+/// <summary>
+/// Handles flashcard sets' entries' creation, retrieval, updating, deletion
+/// </summary>
+public class FlashcardSetEntryService (AppDbContext dbContext)
 {
-    public async ValueTask<FlashcardSet> CreateAsync(CreateFlashcardSetDto dto, int ownerId)
-    {
-        if(dto.ParentSetId is not null) await VerifyFlashcardSetExists(dto.ParentSetId.Value);
-        var flashcardSet = new FlashcardSet
-        {
-            Name = dto.Name,
-            ParentSetId = dto.ParentSetId,
-            OwnerId = ownerId,
-            IsPublic =  dto.IsPublic
-        };
-        dbContext.FlashcardSets.Add(flashcardSet);
-        await dbContext.SaveChangesAsync();
-        return flashcardSet;
-    }
-
-    public async ValueTask<FlashcardSet> UpdateAsync(FlashcardSet flashcardSet, UpdateFlashcardSetDto dto)
-    {
-        flashcardSet.Name = dto.Name;
-        flashcardSet.ParentSetId = dto.ParentSetId;
-        flashcardSet.IsPublic = dto.IsPublic;
-        await dbContext.SaveChangesAsync();
-        return flashcardSet;
-    }
-
+    /// <summary>
+    /// Adds the specified flashcard to the specified flashcard set at the given position.
+    /// </summary>
+    /// <param name="flashcardSetId">ID of the flashcard set to add the specified flashcard to</param>
+    /// <param name="flashcardId">ID of the flashcard to add.</param>
+    /// <param name="order">Position of the flashcard within the set.</param>
+    /// <exception cref="FlashcardAlreadyInSetException">
+    /// Thrown if the flashcard is already a member of the specified set.
+    /// </exception>
     public async ValueTask AddFlashcardAsync(Guid flashcardSetId, Guid flashcardId, int order)
     {
         await ThrowIfIncludesFlashcardAsync(flashcardSetId, flashcardId);
         await AddFlashcardWithoutCheckAsync(flashcardSetId, flashcardId, order);
     }
 
+    /// <summary>
+    /// Adds the specified flashcard to the end of the specified flashcard set.
+    /// </summary>
+    /// <param name="flashcardSetId">ID of the flashcard set to add the specified flashcard to</param>
+    /// <param name="flashcardId">ID of the flashcard to add.</param>
+    /// <exception cref="FlashcardAlreadyInSetException">
+    /// Thrown if the flashcard is already a member of the specified set.
+    /// </exception>
     public async ValueTask AddFlashcardToTheEndAsync(Guid flashcardSetId, Guid flashcardId)
     {
         await ThrowIfIncludesFlashcardAsync(flashcardSetId, flashcardId);
@@ -62,21 +57,15 @@ public class FlashcardSetService (AppDbContext dbContext)
         if (await HasFlashcardAsync(flashcardSetId, flashcardId)) throw new FlashcardAlreadyInSetException();
     }
 
+    /// <summary>
+    /// Checks if the specified flashcard is a member of the specified set.
+    /// </summary>
+    /// <param name="flashcardSetId">ID of the set to check in.</param>
+    /// <param name="flashcardId">ID of the flashcard to check.</param>
+    /// <returns>true if the specified flashcard is a member of the specified set, false otherwise.</returns>
     public async ValueTask<bool> HasFlashcardAsync(Guid flashcardSetId, Guid flashcardId)
     {
         return await dbContext.FlashcardSetEntries.AnyAsync(x =>
             x.FlashcardId == flashcardId && x.FlashcardSetId == flashcardSetId);
-    }
-
-    public async ValueTask<FlashcardSet> GetAsync(Guid setId)
-    {
-        var flashcardSet = await dbContext.FlashcardSets.FindAsync(setId);
-        if (flashcardSet is null) throw new FlashcardSetNotFoundException();
-        return flashcardSet;
-    }
-
-    private async ValueTask VerifyFlashcardSetExists(Guid parentSetId)
-    {
-        if (await dbContext.FlashcardSets.FindAsync(parentSetId) is null) throw new FlashcardSetNotFoundException();
     }
 }

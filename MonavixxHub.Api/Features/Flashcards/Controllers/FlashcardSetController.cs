@@ -1,19 +1,18 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MonavixxHub.Api.Features.Auth.Extensions;
 using MonavixxHub.Api.Features.Flashcards.Authorization;
 using MonavixxHub.Api.Features.Flashcards.DTOs;
-using MonavixxHub.Api.Features.Flashcards.Exceptions;
+using MonavixxHub.Api.Features.Flashcards.Services;
 
-namespace MonavixxHub.Api.Features.Flashcards;
+namespace MonavixxHub.Api.Features.Flashcards.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/flashcard-sets")]
 public class FlashcardSetController(IAuthorizationService authorizationService) : ControllerBase
 {
-    protected int CurrentUserId => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-    
     [HttpGet("{id:guid}")]
     [ProducesResponseType<GetFlashcardSetDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -34,7 +33,7 @@ public class FlashcardSetController(IAuthorizationService authorizationService) 
     public async ValueTask<IActionResult> Create([FromBody] CreateFlashcardSetDto dto,
         [FromServices] FlashcardSetService flashcardSetService)
     {
-        var flashcardSet = await flashcardSetService.CreateAsync(dto, CurrentUserId);
+        var flashcardSet = await flashcardSetService.CreateAsync(dto, User.GetUserId());
         return CreatedAtAction(nameof(Get), 
             new { id = flashcardSet.Id }, GetFlashcardSetDto.From(flashcardSet));
     }
@@ -54,31 +53,5 @@ public class FlashcardSetController(IAuthorizationService authorizationService) 
                 GetFlashcardSetDto.From(
                     await flashcardSetService.UpdateAsync(flashcardSet, dto)));
         return Forbid();
-    }
-
-    [HttpPost("{flashcardSetId:guid}/add-flashcard/")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async ValueTask<IActionResult> AddFlashcard(Guid flashcardSetId,
-        [FromServices] FlashcardSetService flashcardSetService,
-        [FromBody] AddFlashcardToSetDto dto,
-        [FromServices] FlashcardService flashcardService)
-    {
-        var flashcardSet = await flashcardSetService.GetAsync(flashcardSetId);
-        var authorizationResult = 
-            await authorizationService.AuthorizeAsync(User, flashcardSet, Requirements.FlashcardSet.EditAccess);
-        if (!authorizationResult.Succeeded) return Forbid();
-        var flashcard = await flashcardService.GetAsync(dto.FlashcardId);
-        authorizationResult = 
-            await authorizationService.AuthorizeAsync(User, flashcard, Requirements.Flashcard.EditAccess);
-        if (!authorizationResult.Succeeded) return Forbid();
-
-        if (dto.Order is null)
-            await flashcardSetService.AddFlashcardToTheEndAsync(flashcardSetId, dto.FlashcardId);
-        else
-            await flashcardSetService.AddFlashcardAsync(flashcardSetId, dto.FlashcardId, dto.Order.Value);
-        return NoContent();
     }
 }

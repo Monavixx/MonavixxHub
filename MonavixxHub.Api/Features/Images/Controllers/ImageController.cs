@@ -2,8 +2,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using MonavixxHub.Api.Common.Options;
+using MonavixxHub.Api.Features.Images.Services;
 
-namespace MonavixxHub.Api.Features.Images;
+namespace MonavixxHub.Api.Features.Images.Controllers;
 
 [Authorize]
 [ApiController]
@@ -15,7 +16,7 @@ public class ImageController : ControllerBase
     [ProducesResponseType(StatusCodes.Status206PartialContent)]
     [ProducesResponseType(StatusCodes.Status416RangeNotSatisfiable)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async ValueTask<IActionResult> Get(Guid id, [FromServices] IImageService imageService,
+    public async ValueTask<PhysicalFileResult> Get(Guid id, [FromServices] IImageService imageService,
         IOptions<StorageOptions> storageOptions)
     {
         var image = await imageService.GetImageAsync(id);

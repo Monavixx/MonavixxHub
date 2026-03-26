@@ -1,15 +1,13 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.JSInterop.Infrastructure;
-using MonavixxHub.Api.Common;
-using MonavixxHub.Api.Features.Auth.Exceptions;
 using MonavixxHub.Api.Features.Flashcards.DTOs;
 using MonavixxHub.Api.Features.Flashcards.Exceptions;
 using MonavixxHub.Api.Features.Flashcards.Models;
 using MonavixxHub.Api.Features.Images;
 using MonavixxHub.Api.Features.Images.Models;
+using MonavixxHub.Api.Features.Images.Services;
 using MonavixxHub.Api.Infrastructure;
 
-namespace MonavixxHub.Api.Features.Flashcards;
+namespace MonavixxHub.Api.Features.Flashcards.Services;
 
 /// <summary>
 /// Handles flashcard creation, retrieval, and modification.
