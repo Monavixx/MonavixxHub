@@ -1,7 +1,9 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace MonavixxHub.Api.Features.Flashcards.DTOs;
 
 public record AddFlashcardToSetDto
 (
-    Guid FlashcardId,
+    [Required] Guid FlashcardId,
     int? Order
 );

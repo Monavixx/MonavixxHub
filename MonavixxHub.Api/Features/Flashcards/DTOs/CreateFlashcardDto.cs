@@ -5,8 +5,10 @@ namespace MonavixxHub.Api.Features.Flashcards.DTOs;
 
 public record CreateFlashcardDto (
     [StringLength(Flashcard.FrontMaxLength, MinimumLength = 1)]
+    [Required]
     string Front,
     [StringLength(Flashcard.BackMaxLength, MinimumLength = 1)]
+    [Required]
     string Back,
     [StringLength(Flashcard.TranslationMaxLength)]
     string? Transcription,

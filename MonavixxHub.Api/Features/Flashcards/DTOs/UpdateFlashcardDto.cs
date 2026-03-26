@@ -5,9 +5,9 @@ namespace MonavixxHub.Api.Features.Flashcards.DTOs;
 
 public record UpdateFlashcardDto (
     [StringLength(Flashcard.FrontMaxLength, MinimumLength = 1)]
-    string Front,
+    [Required] string Front,
     [StringLength(Flashcard.BackMaxLength, MinimumLength = 1)]
-    string Back,
+    [Required] string Back,
     [StringLength(Flashcard.TranslationMaxLength)]
     string? Transcription,
     IFormFile? Image

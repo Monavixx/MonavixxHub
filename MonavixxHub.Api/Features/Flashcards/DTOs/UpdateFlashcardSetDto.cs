@@ -5,7 +5,7 @@ namespace MonavixxHub.Api.Features.Flashcards.DTOs;
 
 public record UpdateFlashcardSetDto(
     [StringLength(FlashcardSet.NameMaxLength)]
-    string Name,
+    [Required] string Name,
     Guid? ParentSetId,
-    bool IsPublic
+    [Required] bool IsPublic
 );

@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace MonavixxHub.Api.Features.Auth.Models;
 
 public class User
@@ -5,9 +7,10 @@ public class User
     public const int EmailMaxLength = 254;
     public const int UsernameMaxLength = 150;
     public const int UsernameMinLength = 3;
-    public int Id { get; set; }
-    public string Username { get; set; }
-    public byte[] PasswordHash { get; set; }
-    public string Email { get; set; }
-    public DateTimeOffset CreatedAt { get; set; }
+    public const int PasswordMinLength = 8;
+    [Required] public int Id { get; set; }
+    [Required] public string Username { get; set; }
+    [Required] public byte[] PasswordHash { get; set; }
+    [Required] public string Email { get; set; }
+    [Required] public DateTimeOffset CreatedAt { get; set; }
 }

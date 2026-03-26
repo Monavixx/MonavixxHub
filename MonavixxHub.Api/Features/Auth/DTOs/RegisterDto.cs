@@ -6,8 +6,11 @@ namespace MonavixxHub.Api.Features.Auth.DTOs;
 public record RegisterDto
 (
     [StringLength(User.UsernameMaxLength, MinimumLength = User.UsernameMinLength)]
+    [Required]
     string Username,
     [StringLength(User.EmailMaxLength)]
+    [Required]
     string Email,
-    string Password
+    [MinLength(User.PasswordMinLength)]
+    [Required] string Password
 );
