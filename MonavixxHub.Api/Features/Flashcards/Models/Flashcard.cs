@@ -5,6 +5,10 @@ namespace MonavixxHub.Api.Features.Flashcards.Models;
 
 public class Flashcard
 {
+    public const int FrontMaxLength = 500;
+    public const int BackMaxLength = 500;
+    public const int TranslationMaxLength = 500;
+    public const int ImageMaxSize = 5242880;
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Front { get; set; }
     public string Back { get; set; }

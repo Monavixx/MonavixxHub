@@ -1,4 +1,5 @@
 using System.Text;
+using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -9,11 +10,13 @@ using MonavixxHub.Api.Features.Auth;
 using MonavixxHub.Api.Features.Auth.Middlewares;
 using MonavixxHub.Api.Features.Flashcards.Authorization;
 using MonavixxHub.Api.Features.Flashcards.Controllers;
+using MonavixxHub.Api.Features.Flashcards.DTOs;
 using MonavixxHub.Api.Features.Flashcards.Services;
 using MonavixxHub.Api.Features.Images.Authorization;
 using MonavixxHub.Api.Features.Images.Services;
 using MonavixxHub.Api.Infrastructure;
 using Scalar.AspNetCore;
+using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,21 +24,25 @@ builder.Services.AddSingleton<EmailCheckService>();
 builder.Services.AddSingleton<PasswordHashService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<AuthService>();
-builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.Configure<StorageOptions>(builder.Configuration.GetSection("Storage"));
 builder.Services.AddScoped<IImageService, ImageService>();
 builder.Services.AddScoped<FlashcardService>();
 builder.Services.AddScoped<FlashcardSetService>();
-builder.Services.AddScoped<FlashcardSetEntryController>();
+builder.Services.AddScoped<FlashcardAccessService>();
+builder.Services.AddScoped<ImageAccessService>();
 builder.Services.AddSingleton<IAuthorizationHandler, FlashcardSetAuthorizationHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, FlashcardAuthorizationHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, ImageAuthorizationHandler>();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
-
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
+
+
+builder.Services.AddControllers();
 
 builder.Services.AddDbContext<AppDbContext>(optionsBuilder =>
 {

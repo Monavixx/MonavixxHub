@@ -15,15 +15,9 @@ public class AuthService(
 {
     public async Task<AuthResponseDto> LoginAsync(string usernameOrEmail, string password)
     {
-        User user;
-        if (emailCheckService.Check(usernameOrEmail))
-        {
-            user = (await dbContext.Users.SingleOrDefaultAsync(u => u.Email == usernameOrEmail))!;
-        }
-        else
-        {
-            user = (await dbContext.Users.SingleOrDefaultAsync(u => u.Username == usernameOrEmail))!;
-        }
+        User? user = (emailCheckService.Check(usernameOrEmail)
+            ? await dbContext.Users.SingleOrDefaultAsync(u => u.Email == usernameOrEmail)
+            : await dbContext.Users.SingleOrDefaultAsync(u => u.Username == usernameOrEmail));
         if (user is null)
             throw new UserDoesNotExistException();
         if (passwordHashService.Verify(password, user.PasswordHash))

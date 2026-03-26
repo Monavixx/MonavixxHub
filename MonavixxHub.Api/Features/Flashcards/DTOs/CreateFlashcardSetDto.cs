@@ -1,8 +1,12 @@
+using System.ComponentModel.DataAnnotations;
+using MonavixxHub.Api.Features.Flashcards.Models;
+
 namespace MonavixxHub.Api.Features.Flashcards.DTOs;
 
-public class CreateFlashcardSetDto
-{
-    public string Name { get; set; } = string.Empty;
-    public Guid? ParentSetId { get; set; } = null;
-    public bool IsPublic { get; set; } = false;
-}
+public record CreateFlashcardSetDto
+(
+    [StringLength(FlashcardSet.NameMaxLength)]
+    string Name,
+    Guid? ParentSetId,
+    bool IsPublic
+);

@@ -1,9 +1,14 @@
+using System.ComponentModel.DataAnnotations;
+using MonavixxHub.Api.Features.Flashcards.Models;
+
 namespace MonavixxHub.Api.Features.Flashcards.DTOs;
 
-public class CreateFlashcardDto
-{
-    public string Front { get; set; } = "";
-    public string Back { get; set; } = "";
-    public string? Transcription { get; set; }
-    public IFormFile? Image { get; set; }
-}
+public record CreateFlashcardDto (
+    [StringLength(Flashcard.FrontMaxLength, MinimumLength = 1)]
+    string Front,
+    [StringLength(Flashcard.BackMaxLength, MinimumLength = 1)]
+    string Back,
+    [StringLength(Flashcard.TranslationMaxLength)]
+    string? Transcription,
+    IFormFile? Image
+);

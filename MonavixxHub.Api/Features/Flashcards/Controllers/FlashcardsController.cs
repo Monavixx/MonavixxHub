@@ -23,15 +23,15 @@ public class FlashcardsController : ControllerBase
     {
         return Ok(flashcardService.GetAll(User.GetUserId())
             .Select(flashcard => new GetFlashcardDto
-            {
-                CreatedAt = flashcard.CreatedAt,
-                UpdatedAt = flashcard.UpdatedAt,
-                Transcription = flashcard.Transcription,
-                Id = flashcard.Id,
-                ImageId = flashcard.ImageId,
-                Back = flashcard.Back,
-                Front = flashcard.Front
-            }));
+            (
+                Front: flashcard.Front,
+                Back: flashcard.Back,
+                Transcription: flashcard.Transcription,
+                ImageId: flashcard.ImageId,
+                CreatedAt: flashcard.CreatedAt,
+                UpdatedAt: flashcard.UpdatedAt,
+                Id: flashcard.Id
+            )));
     }
 
     [HttpGet("{id:guid}")]

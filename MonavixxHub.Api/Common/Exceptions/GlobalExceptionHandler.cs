@@ -39,7 +39,7 @@ public class GlobalExceptionHandler
         {
             return exception.Message;
         }
-        return exception is AppBaseException e ? e.Message : null;
+        return (exception is AppBaseException e ? e.Message : null);
     }
 
     private void Log(int statusCode, string message)
@@ -50,7 +50,6 @@ public class GlobalExceptionHandler
                 logger.LogError("Status code {StatusCode}: {Message}", statusCode, message);
                 break;
             case >= 400:
-                Console.WriteLine("PIZDA");
                 logger.LogInformation("Status code {StatusCode}: {Message}", statusCode, message);
                 break;
             default:

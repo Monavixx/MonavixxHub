@@ -48,7 +48,8 @@ public class ImageService(IOptions<StorageOptions> options, AppDbContext dbConte
         await query.LoadAsync();
         foreach (var i in query)
         {
-            if (image.SequenceEqual(await File.ReadAllBytesAsync(Path.Combine(_storageOptions.ImageFolder, i.Path))))
+            var bytes = await File.ReadAllBytesAsync(Path.Combine(_storageOptions.ImageFolder, i.Path));
+            if (image.SequenceEqual(bytes))
             {
                 i.ReferenceCount += addReferenceCount;
                 await dbContext.SaveChangesAsync();

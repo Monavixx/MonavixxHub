@@ -4,6 +4,7 @@ namespace MonavixxHub.Api.Features.Flashcards.Models;
 
 public class FlashcardSet
 {
+    public const int NameMaxLength = 150;
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public IList<FlashcardSetEntry> Entries { get; } = [];
