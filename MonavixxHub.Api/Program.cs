@@ -1,26 +1,26 @@
 using System.Text;
+using EntityFramework.Exceptions.PostgreSQL;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.IdentityModel.Tokens;
 using MonavixxHub.Api.Common;
 using MonavixxHub.Api.Common.Exceptions;
 using MonavixxHub.Api.Common.Options;
 using MonavixxHub.Api.Common.Options.RateLimiting;
-using MonavixxHub.Api.Features.Auth;
 using MonavixxHub.Api.Features.Auth.Middlewares;
 using MonavixxHub.Api.Features.Auth.Services;
 using MonavixxHub.Api.Features.Flashcards.Authorization;
-using MonavixxHub.Api.Features.Flashcards.Controllers;
-using MonavixxHub.Api.Features.Flashcards.DTOs;
 using MonavixxHub.Api.Features.Flashcards.Services;
 using MonavixxHub.Api.Features.Images.Authorization;
 using MonavixxHub.Api.Features.Images.Services;
 using MonavixxHub.Api.Infrastructure;
 using Scalar.AspNetCore;
 using Serilog;
+using Serilog.Events;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using EmailCheckService = MonavixxHub.Api.Features.Auth.Services.EmailCheckService;
 
@@ -49,10 +49,11 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Host.UseSerilog((context, configuration) =>
     configuration
         .ReadFrom.Configuration(context.Configuration)
-        .WriteTo.Console()
+        .WriteTo.Console(restrictedToMinimumLevel:LogEventLevel.Information)
         .WriteTo.File(
             "logs/log-.txt",
-            rollingInterval: RollingInterval.Day)
+            rollingInterval: RollingInterval.Day,
+            restrictedToMinimumLevel: LogEventLevel.Verbose)
 );
 
 builder.Services.AddRateLimiter(options =>
@@ -77,7 +78,8 @@ builder.Services.AddControllers();
 
 builder.Services.AddDbContext<AppDbContext>(optionsBuilder =>
 {
-    optionsBuilder.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"));
+    optionsBuilder.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
+        .UseExceptionProcessor();
 });
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -102,10 +104,8 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
     app.MapScalarApiReference();
 }
-
-app.UseHttpsRedirection();
-
 app.UseExceptionHandler();
+app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseRateLimiter();
 app.UseMiddleware<ValidateUserMiddleware>();

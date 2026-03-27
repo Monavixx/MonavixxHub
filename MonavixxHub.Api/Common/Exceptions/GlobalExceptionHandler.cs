@@ -1,6 +1,9 @@
 using System.Net;
+using EntityFramework.Exceptions.Common;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using MonavixxHub.Api.Infrastructure;
 
 namespace MonavixxHub.Api.Common.Exceptions;
 
@@ -9,6 +12,11 @@ public class GlobalExceptionHandler
 {
     public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
     {
+        var dbContext = httpContext.RequestServices.GetService<AppDbContext>()!;
+        if (exception is UniqueConstraintException uniqueConstraintException
+            && uniqueConstraintException.MapToDomain(dbContext) is { } appBaseException)
+            exception = appBaseException;
+        
         var (code, message) = MapException(exception);
         Log(code, message);
         httpContext.Response.StatusCode = code;
@@ -19,11 +27,12 @@ public class GlobalExceptionHandler
             Detail = GetSafeDetails(exception, httpContext)
         };
         
-        return await problemDetailsService.TryWriteAsync(new ProblemDetailsContext()
+         await problemDetailsService.TryWriteAsync(new ProblemDetailsContext()
         {
             HttpContext =  httpContext,
             ProblemDetails = problemDetails
         });
+        return true;
     }
 
     private static (int statusCode, string message) MapException(Exception exception)

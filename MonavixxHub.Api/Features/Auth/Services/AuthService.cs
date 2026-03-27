@@ -1,3 +1,4 @@
+using EntityFramework.Exceptions.Common;
 using Microsoft.EntityFrameworkCore;
 using MonavixxHub.Api.Features.Auth.DTOs;
 using MonavixxHub.Api.Features.Auth.Exceptions;
@@ -10,7 +11,8 @@ public class AuthService(
     TokenService tokenService,
     AppDbContext dbContext,
     PasswordHashService passwordHashService,
-    EmailCheckService emailCheckService)
+    EmailCheckService emailCheckService,
+    ILogger<AuthService> logger)
 {
     public async ValueTask<AuthResponseDto> LoginAsync(string usernameOrEmail, string password)
     {
@@ -26,10 +28,12 @@ public class AuthService(
 
     public async ValueTask<AuthResponseDto> RegisterAsync(string username, string password, string email)
     {
-        if (await dbContext.Users.AnyAsync(u => u.Email == email))
-            throw new UserWithSuchEmailAlreadyExistsException();
-        if (await dbContext.Users.AnyAsync(u => u.Username == username))
-            throw new UserWithSuchUsernameAlreadyExistsException();
+        logger.LogInformation("Registration attempt for user {Username} with email {Email}.", username, email);
+        
+        // if (await dbContext.Users.AnyAsync(u => u.Email == email))
+        //     throw new UserWithSuchEmailAlreadyExistsException();
+        // if (await dbContext.Users.AnyAsync(u => u.Username == username))
+        //     throw new UserWithSuchUsernameAlreadyExistsException();
         User user = new User()
         {
             Email = email,
