@@ -2,12 +2,16 @@ using System.Text;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using MonavixxHub.Api.Common;
 using MonavixxHub.Api.Common.Exceptions;
 using MonavixxHub.Api.Common.Options;
+using MonavixxHub.Api.Common.Options.RateLimiting;
 using MonavixxHub.Api.Features.Auth;
 using MonavixxHub.Api.Features.Auth.Middlewares;
+using MonavixxHub.Api.Features.Auth.Services;
 using MonavixxHub.Api.Features.Flashcards.Authorization;
 using MonavixxHub.Api.Features.Flashcards.Controllers;
 using MonavixxHub.Api.Features.Flashcards.DTOs;
@@ -16,7 +20,9 @@ using MonavixxHub.Api.Features.Images.Authorization;
 using MonavixxHub.Api.Features.Images.Services;
 using MonavixxHub.Api.Infrastructure;
 using Scalar.AspNetCore;
+using Serilog;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
+using EmailCheckService = MonavixxHub.Api.Features.Auth.Services.EmailCheckService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,7 +31,8 @@ builder.Services.AddSingleton<PasswordHashService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddOpenApi();
-builder.Services.Configure<StorageOptions>(builder.Configuration.GetSection("Storage"));
+builder.Services.Configure<StorageOptions>(builder.Configuration.GetSection(StorageOptions.Name));
+builder.Services.Configure<RateLimitingOptions>(builder.Configuration.GetSection(RateLimitingOptions.Name));
 builder.Services.AddScoped<IImageService, ImageService>();
 builder.Services.AddScoped<FlashcardService>();
 builder.Services.AddScoped<FlashcardSetService>();
@@ -38,9 +45,33 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
 
+builder.Host.UseSerilog((context, configuration) =>
+    configuration
+        .ReadFrom.Configuration(context.Configuration)
+        .WriteTo.Console()
+        .WriteTo.File(
+            "logs/log-.txt",
+            rollingInterval: RollingInterval.Day)
+);
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    var rlOptions = builder.Configuration.GetSection(RateLimitingOptions.Name).Get<RateLimitingOptions>()!;
+    options.AddFixedWindowLimiter(Policies.LoginRateLimiting, opt =>
+    {
+        opt.PermitLimit = rlOptions.Login.PermitLimit;
+        opt.Window = TimeSpan.FromSeconds(rlOptions.Login.WindowSeconds);
+        opt.QueueLimit = rlOptions.Login.QueueLimit;
+    });
+    options.AddFixedWindowLimiter(Policies.RegisterRateLimiting, opt =>
+    {
+        opt.PermitLimit = rlOptions.Register.PermitLimit;
+        opt.Window = TimeSpan.FromSeconds(rlOptions.Register.WindowSeconds);
+        opt.QueueLimit = rlOptions.Register.QueueLimit;
+    });
+});
 
 builder.Services.AddControllers();
 
@@ -75,8 +106,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseExceptionHandler();
-
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseMiddleware<ValidateUserMiddleware>();
 app.UseAuthorization();
 

@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 
-namespace MonavixxHub.Api.Features.Auth;
+namespace MonavixxHub.Api.Features.Auth.Services;
 
 public class PasswordHashService
 {

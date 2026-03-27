@@ -17,6 +17,12 @@ namespace MonavixxHub.Api.Features.Flashcards.Controllers;
 [Route("api/[controller]")]
 public class FlashcardsController : ControllerBase
 {
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="flashcardService"></param>
+    /// <returns></returns>
+    
     [HttpGet("all")]
     [ProducesResponseType<IEnumerable<GetFlashcardDto>>(StatusCodes.Status200OK)]
     public IActionResult GetAll([FromServices] FlashcardService flashcardService)

@@ -1,11 +1,10 @@
-using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Microsoft.EntityFrameworkCore;
 using MonavixxHub.Api.Features.Auth.DTOs;
 using MonavixxHub.Api.Features.Auth.Exceptions;
 using MonavixxHub.Api.Features.Auth.Models;
 using MonavixxHub.Api.Infrastructure;
 
-namespace MonavixxHub.Api.Features.Auth;
+namespace MonavixxHub.Api.Features.Auth.Services;
 
 public class AuthService(
     TokenService tokenService,
@@ -13,9 +12,9 @@ public class AuthService(
     PasswordHashService passwordHashService,
     EmailCheckService emailCheckService)
 {
-    public async Task<AuthResponseDto> LoginAsync(string usernameOrEmail, string password)
+    public async ValueTask<AuthResponseDto> LoginAsync(string usernameOrEmail, string password)
     {
-        User? user = (emailCheckService.Check(usernameOrEmail)
+        User? user = (emailCheckService.IsValid(usernameOrEmail)
             ? await dbContext.Users.SingleOrDefaultAsync(u => u.Email == usernameOrEmail)
             : await dbContext.Users.SingleOrDefaultAsync(u => u.Username == usernameOrEmail));
         if (user is null)
@@ -25,7 +24,7 @@ public class AuthService(
         throw new WrongUsernameOrPasswordException();
     }
 
-    public async Task<AuthResponseDto> RegisterAsync(string username, string password, string email)
+    public async ValueTask<AuthResponseDto> RegisterAsync(string username, string password, string email)
     {
         if (await dbContext.Users.AnyAsync(u => u.Email == email))
             throw new UserWithSuchEmailAlreadyExistsException();

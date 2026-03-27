@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MonavixxHub.Api", "MonavixxHub.Api\MonavixxHub.Api.csproj", "{8184FCCA-C752-4582-8EDE-8F76A85B6324}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MonavixxHub.Api.UnitTests", "MonavixxHub.Api.UnitTests\MonavixxHub.Api.UnitTests.csproj", "{A07B6D83-B465-4016-B090-549CC6B42064}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{8184FCCA-C752-4582-8EDE-8F76A85B6324}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8184FCCA-C752-4582-8EDE-8F76A85B6324}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8184FCCA-C752-4582-8EDE-8F76A85B6324}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A07B6D83-B465-4016-B090-549CC6B42064}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A07B6D83-B465-4016-B090-549CC6B42064}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A07B6D83-B465-4016-B090-549CC6B42064}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A07B6D83-B465-4016-B090-549CC6B42064}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

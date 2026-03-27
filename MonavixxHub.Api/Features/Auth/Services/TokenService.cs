@@ -4,7 +4,7 @@ using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using MonavixxHub.Api.Features.Auth.Models;
 
-namespace MonavixxHub.Api.Features.Auth;
+namespace MonavixxHub.Api.Features.Auth.Services;
 
 public class TokenService (IConfiguration config)
 {

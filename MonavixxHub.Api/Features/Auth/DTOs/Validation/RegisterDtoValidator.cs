@@ -6,10 +6,10 @@ namespace MonavixxHub.Api.Features.Auth.DTOs.Validation;
 
 public class RegisterDtoValidator: AbstractValidator<RegisterDto>
 {
-    public RegisterDtoValidator(EmailCheckService emailCheckService)
+    public RegisterDtoValidator(Services.EmailCheckService emailCheckService)
     {
         RuleFor(r => r.Email)
-            .Must(emailCheckService.Check)
+            .Must(emailCheckService.IsValid)
             .WithMessage("Email address is not valid");
         RuleFor(reg => reg.Password)
             .Must(s => s.Any(char.IsDigit))
