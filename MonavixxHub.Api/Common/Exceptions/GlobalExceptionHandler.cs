@@ -1,23 +1,19 @@
-using System.Net;
 using EntityFramework.Exceptions.Common;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using MonavixxHub.Api.Infrastructure;
 
 namespace MonavixxHub.Api.Common.Exceptions;
 
 public class GlobalExceptionHandler
-    (IProblemDetailsService problemDetailsService, ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
+    (IProblemDetailsService problemDetailsService,
+        ILogger<GlobalExceptionHandler> logger, UniqueConstraintResolver uniqueConstraintResolver) : IExceptionHandler
 {
     public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
     {
         var dbContext = httpContext.RequestServices.GetService<AppDbContext>()!;
-        if (exception is UniqueConstraintException uniqueConstraintException
-            && uniqueConstraintException.MapToDomain(dbContext) is { } appBaseException)
-            exception = appBaseException;
         
-        var (code, message) = MapException(exception);
+        var (code, message) = MapException(exception, dbContext);
         Log(code, message);
         httpContext.Response.StatusCode = code;
         var problemDetails = new ProblemDetails()
@@ -35,10 +31,12 @@ public class GlobalExceptionHandler
         return true;
     }
 
-    private static (int statusCode, string message) MapException(Exception exception)
+    private (int statusCode, string message) MapException(Exception exception, AppDbContext dbContext)
         => exception switch
         {
             AppBaseException e => ((int)e.StatusCode, e.Message),
+            UniqueConstraintException e => (StatusCodes.Status409Conflict,
+                uniqueConstraintResolver.Resolve(e,dbContext) ?? e.Message),
             _ => (StatusCodes.Status500InternalServerError, "An unexpected error occured")
         };
 

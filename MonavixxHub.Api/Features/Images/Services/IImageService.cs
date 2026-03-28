@@ -9,30 +9,29 @@ namespace MonavixxHub.Api.Features.Images.Services;
 public interface IImageService
 {
     /// <summary>
-    /// Returns the raw bytes of the specified image.
+    /// Returns the stream of raw bytes of the specified image.
     /// </summary>
-    /// <param name="imageId">ID of the image to retrieve.</param>
+    /// <param name="image">Image to retrieve.</param>
     /// <returns>Raw image bytes.</returns>
-    /// <exception cref="ImageNotFoundException">
-    /// Thrown if the image doesn't exist.
-    /// </exception>
-    ValueTask<byte[]> GetImageBytesAsync(Guid imageId);
+    ValueTask<Stream> GetImageStreamAsync(Image image);
     /// <summary>
     /// Returns the image entity with the specified ID.
     /// </summary>
     /// <param name="imageId">ID of the image to retrieve.</param>
     /// <returns>The image entity</returns>
     ValueTask<Image> GetImageAsync(Guid imageId);
+
     /// <summary>
-    /// Saves the image from the specified form <paramref name="file"/> and returns the stored entity.
+    /// Saves the image from the specified <paramref name="stream"/> and returns the stored entity.
     /// </summary>
-    /// <param name="file">The uploaded image file to store.</param>
+    /// <param name="stream">The uploaded image to store.</param>
+    /// <param name="mimeType">MIME type of the uploaded image.</param>
     /// <param name="addReferenceCount">Initial or additional reference count. Default to 1.</param>
     /// <exception cref="ArgumentOutOfRangeException">
     /// Thrown if <paramref name="addReferenceCount"/> is less than 1.
     /// </exception>
     /// <returns>The saved or existing image entity.</returns>
-    ValueTask<Image> SaveImageAsync(IFormFile file, int addReferenceCount = 1);
+    ValueTask<Image> SaveImageAsync(Stream stream, string mimeType, int addReferenceCount = 1);
     /// <summary>
     /// Increments reference count of the specified image.
     /// </summary>

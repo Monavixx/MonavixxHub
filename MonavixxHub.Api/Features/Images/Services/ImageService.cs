@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -18,11 +19,10 @@ public class ImageService(IOptions<StorageOptions> options, AppDbContext dbConte
 {
     private readonly StorageOptions _storageOptions = options.Value;
 
-    public async ValueTask<byte[]> GetImageBytesAsync(Guid imageId)
+    public async ValueTask<Stream> GetImageStreamAsync(Image image)
     {
-        var image = await dbContext.Images.FindAsync(imageId);
-        if (image is null) throw new ImageNotFoundException();
-        return await File.ReadAllBytesAsync(Path.Combine(_storageOptions.ImageFolder, image.Path));
+        return new DeflateStream(File.OpenRead(Path.Combine(_storageOptions.ImageFolder, image.Path)),
+            CompressionMode.Decompress);
     }
 
     public async ValueTask<Image> GetImageAsync(Guid imageId)
@@ -30,51 +30,74 @@ public class ImageService(IOptions<StorageOptions> options, AppDbContext dbConte
         return await dbContext.Images.FindAsync(imageId) ?? throw new ImageNotFoundException();
     }
 
-    public async ValueTask<Image> SaveImageAsync(IFormFile file, int addReferenceCount = 1)
-    {
-        if(addReferenceCount < 1) throw new ArgumentOutOfRangeException(nameof(addReferenceCount));
-        using var ms = new MemoryStream();
-        await file.CopyToAsync(ms);
-        return await SaveImageAsync(ms.ToArray(), file.ContentType, addReferenceCount);
-    }
+    // public async ValueTask<Image> SaveImageAsync(IFormFile file, int addReferenceCount = 1)
+    // {
+    //     if(addReferenceCount < 1) throw new ArgumentOutOfRangeException(nameof(addReferenceCount));
+    //     using var ms = new MemoryStream();
+    //     await file.CopyToAsync(ms);
+    //     return await SaveImageAsync(ms.ToArray(), file.ContentType, addReferenceCount);
+    // }
 
-    public async ValueTask<Image> SaveImageAsync(byte[] image, string mimeType, int addReferenceCount = 1)
+    public async ValueTask<Image> SaveImageAsync(Stream imageStream, string mimeType, int addReferenceCount = 1)
     {
         if(addReferenceCount < 1) throw new ArgumentOutOfRangeException(nameof(addReferenceCount));
         
-        Directory.CreateDirectory(_storageOptions.ImageFolder);
+        using var ms = new MemoryStream();
+        await imageStream.CopyToAsync(ms);
+        byte[] image = ms.ToArray();
+        
         byte[] hash = SHA256.HashData(image);
-        var query = dbContext.Images.Where(i => i.Hash == hash);
-        await query.LoadAsync();
-        foreach (var i in query)
+        var imageEntity = await GetOrNullAsync(image, hash);
+        if (imageEntity is not null)
         {
-            var bytes = await File.ReadAllBytesAsync(Path.Combine(_storageOptions.ImageFolder, i.Path));
-            if (image.SequenceEqual(bytes))
-            {
-                i.ReferenceCount += addReferenceCount;
-                await dbContext.SaveChangesAsync();
-                return i;
-            }
+            imageEntity.ReferenceCount += addReferenceCount;
+            await dbContext.SaveChangesAsync();
+            return imageEntity;
+        }
+        return await SaveNewImageAsync(image, hash, mimeType, addReferenceCount);
+    }
+
+    private async ValueTask<Image> SaveNewImageAsync(byte[] image, byte[] hash, string mimeType, int addReferenceCount)
+    {
+        Directory.CreateDirectory(_storageOptions.ImageFolder);
+        string path = Path.Combine(_storageOptions.ImageFolder, NewImageFilename());
+        var fs = new FileStream(path, FileMode.CreateNew);
+        await using (var ds = new DeflateStream(fs, CompressionMode.Compress))
+        {
+            await ds.WriteAsync(image);
         }
 
-        string path = NewImageFilename(mimeType);
-        await File.WriteAllBytesAsync(Path.Combine(_storageOptions.ImageFolder, path), image);
-
-        Image img = new()
+        Image imageEntity = new()
         {
             Hash = hash,
             Path = path,
             MimeType = mimeType,
             ReferenceCount = addReferenceCount,
         };
-        dbContext.Images.Add(img);
+        dbContext.Images.Add(imageEntity);
         await dbContext.SaveChangesAsync();
-        return img;
+        return imageEntity;
     }
-    private string NewImageFilename(string mimeType)
+    private async ValueTask<Image?> GetOrNullAsync(byte[] image, byte[] hash)
     {
-        MimeKit.MimeTypes.TryGetExtension(mimeType, out var extension);
-        return Guid.NewGuid().ToString("N") + extension;
+        var query = dbContext.Images.Where(i => i.Hash == hash);
+        await query.LoadAsync();
+        foreach (var i in query)
+        {
+            var fs = File.OpenRead(Path.Combine(_storageOptions.ImageFolder, i.Path));
+            await using var ds = new DeflateStream(fs, CompressionMode.Decompress);
+            using var ms = new MemoryStream();
+            await ds.CopyToAsync(ms);
+            if (image.SequenceEqual(ms.GetBuffer().AsSpan(0, (int)ms.Length)))
+                return i;
+        }
+
+        return null;
+    }
+    private string NewImageFilename(/*string mimeType*/)
+    {
+        // MimeKit.MimeTypes.TryGetExtension(mimeType, out var extension);
+        return Guid.NewGuid().ToString("N")/* + extension + ".deflate"*/;
     }
     public async ValueTask DeleteImageAsync(Guid imageId)
     {
@@ -108,7 +131,7 @@ public class ImageService(IOptions<StorageOptions> options, AppDbContext dbConte
         {
             u.SetProperty(x => x.ReferenceCount, x => x.ReferenceCount + 1);
         });
-        if(num == 0)
+        if (num == 0)
             throw new ImageNotFoundException();
     }
 }

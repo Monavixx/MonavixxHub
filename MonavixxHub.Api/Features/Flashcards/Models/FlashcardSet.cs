@@ -12,7 +12,7 @@ public class FlashcardSet
     public FlashcardSet? ParentSet { get; set; } = null;
     public Guid? ParentSetId { get; set; } = null;
     [Required] public bool IsPublic  { get; set; } = false;
-    [Required] public int OwnerId { get; set; }
+    [Required] public UserIdType OwnerId { get; set; }
     public User Owner { get; set; }
     public ICollection<FlashcardSet> Subsets { get; } = [];
 }

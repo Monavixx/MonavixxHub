@@ -10,7 +10,7 @@ namespace MonavixxHub.Api.Features.Auth.Controllers;
 /// Provides endpoints to register and login.
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/auth")]
 public class AuthController (AuthService authService) : ControllerBase
 {
     /// <summary>

@@ -1,8 +1,9 @@
+using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
+using MonavixxHub.Api.Features.Auth.Extensions;
 using MonavixxHub.Api.Features.Flashcards.DTOs;
 using MonavixxHub.Api.Features.Flashcards.Exceptions;
 using MonavixxHub.Api.Features.Flashcards.Models;
-using MonavixxHub.Api.Features.Images;
 using MonavixxHub.Api.Features.Images.Models;
 using MonavixxHub.Api.Features.Images.Services;
 using MonavixxHub.Api.Infrastructure;
@@ -13,26 +14,27 @@ namespace MonavixxHub.Api.Features.Flashcards.Services;
 /// Handles flashcard creation, retrieval, and modification.
 /// Each flashcard belongs to a specific user and can optionally contain an image.
 /// </summary>
-public class FlashcardService (IImageService imageService, AppDbContext dbContext)
+public class FlashcardService (IImageService imageService, AppDbContext dbContext, ILogger<FlashcardService> logger)
 {
     /// <summary>
     /// Creates a new flashcard for the specified user.
     /// </summary>
     /// <param name="dto">Flashcard data including front, back, and optional image.</param>
-    /// <param name="userId">ID of the user creating the flashcard.</param>
+    /// <param name="user">User creating the flashcard.</param>
     /// <returns>The created flashcard.</returns>
-    public async ValueTask<Flashcard> CreateAsync(CreateFlashcardDto dto, int userId)
+    public async ValueTask<Flashcard> CreateAsync(CreateFlashcardDto dto, ClaimsPrincipal user)
     {
+        logger.LogInformation($"Creating Flashcard ({dto.Front} - {dto.Back})");
         Image? image = null;
         if(dto.Image is not null)
         {
-            image = await imageService.SaveImageAsync(dto.Image);
+            image = await imageService.SaveImageAsync(dto.Image.OpenReadStream(), dto.Image.ContentType);
         }
 
         var now = DateTimeOffset.UtcNow;
         var flashcard = new Flashcard
         {
-            OwnerId = userId,
+            OwnerId = user.GetUserId(),
             Front = dto.Front,
             Back = dto.Back,
             Transcription = dto.Transcription,
@@ -42,6 +44,7 @@ public class FlashcardService (IImageService imageService, AppDbContext dbContex
         };
         dbContext.Flashcards.Add(flashcard);
         await dbContext.SaveChangesAsync();
+        logger.LogInformation($"Flashcard created ({flashcard.Id})");
         return flashcard;
     }
 
@@ -57,7 +60,7 @@ public class FlashcardService (IImageService imageService, AppDbContext dbContex
         {
             if (flashcard.ImageId is not null)
                 await imageService.DecrementRcAndDeleteIfUnusedAsync(flashcard.ImageId.Value);
-            var image = await imageService.SaveImageAsync(dto.Image);
+            var image = await imageService.SaveImageAsync(dto.Image.OpenReadStream(), dto.Image.ContentType);
             flashcard.ImageId = image.Id;
         }
         if(dto.Back is not null)
@@ -80,10 +83,17 @@ public class FlashcardService (IImageService imageService, AppDbContext dbContex
         flashcard.Front = dto.Front;
         flashcard.Back = dto.Back;
         flashcard.Transcription = dto.Transcription;
-        if (dto.Image is null) flashcard.ImageId = null;
+        if (dto.Image is null)
+        {
+            if (flashcard.ImageId is not null)
+            {
+                await imageService.DecrementRcAndDeleteIfUnusedAsync(flashcard.ImageId.Value);
+                flashcard.ImageId = null;
+            }
+        }
         else
         {
-            var image = await imageService.SaveImageAsync(dto.Image);
+            var image = await imageService.SaveImageAsync(dto.Image.OpenReadStream(), dto.Image.ContentType);
             flashcard.ImageId = image.Id;
         }
         flashcard.UpdatedAt = DateTimeOffset.UtcNow;
@@ -93,10 +103,11 @@ public class FlashcardService (IImageService imageService, AppDbContext dbContex
     /// <summary>
     /// Returns a queryable collection of flashcards owned by the specified user.
     /// </summary>
-    /// <param name="userId">ID of the user whose flashcards to retrieve.</param>
+    /// <param name="user">User whose flashcards to retrieve.</param>
     /// <returns>An IQueryable collection that can be further filtered or projected.</returns>
-    public IQueryable<Flashcard> GetAll(int userId)
+    public IQueryable<Flashcard> GetAll(ClaimsPrincipal user)
     {
+        int userId = user.GetUserId();
         return dbContext.Flashcards.Where(x => x.OwnerId == userId);
     }
 

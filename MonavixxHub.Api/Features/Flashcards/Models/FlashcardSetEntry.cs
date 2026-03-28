@@ -9,4 +9,7 @@ public class FlashcardSetEntry
     [Required] public Guid FlashcardId { get; set; }
     public Flashcard Flashcard { get; set; }
     [Required] public int Order { get; set; }
+    
+    //TODO: consider adding bool ReadOnly. Users will be able to add foreign flashcards. If user decides to modify
+    // :ReadOnly flashcard, a new flashcard is created.
 }

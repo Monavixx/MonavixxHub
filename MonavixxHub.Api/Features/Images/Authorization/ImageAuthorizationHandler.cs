@@ -12,8 +12,7 @@ public class ImageAuthorizationHandler (ImageAccessService imageAccessService)
     protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, ImageReadAccessRequirement requirement,
         Image resource)
     {
-        int userId = context.User.GetUserId();
-        if (await imageAccessService.CanRead(resource.Id, userId))
+        if (await imageAccessService.CanRead(resource.Id, context.User))
             context.Succeed(requirement);
     }
 }

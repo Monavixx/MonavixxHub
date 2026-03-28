@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using MonavixxHub.Api.Features.Auth.Extensions;
 using MonavixxHub.Api.Features.Flashcards.DTOs;
 using MonavixxHub.Api.Features.Flashcards.Exceptions;
 using MonavixxHub.Api.Features.Flashcards.Models;
@@ -14,19 +16,19 @@ public class FlashcardSetService (AppDbContext dbContext)
     /// Creates a new flashcard set owned by the specified user.
     /// </summary>
     /// <param name="dto">Data used to create the flashcard set.</param>
-    /// <param name="ownerId">ID of the user who will own the flashcard set.</param>
+    /// <param name="owner">User who will own the flashcard set.</param>
     /// <returns>The newly created flashcard set.</returns>
     /// <exception cref="FlashcardSetNotFoundException">
     /// Thrown if the specified parent flashcard set doesn't exist.
     /// </exception>
-    public async ValueTask<FlashcardSet> CreateAsync(CreateFlashcardSetDto dto, int ownerId)
+    public async ValueTask<FlashcardSet> CreateAsync(CreateFlashcardSetDto dto, ClaimsPrincipal owner)
     {
         if(dto.ParentSetId is not null) await VerifyFlashcardSetExists(dto.ParentSetId.Value);
         var flashcardSet = new FlashcardSet
         {
             Name = dto.Name,
             ParentSetId = dto.ParentSetId,
-            OwnerId = ownerId,
+            OwnerId = owner.GetUserId(),
             IsPublic =  dto.IsPublic
         };
         dbContext.FlashcardSets.Add(flashcardSet);

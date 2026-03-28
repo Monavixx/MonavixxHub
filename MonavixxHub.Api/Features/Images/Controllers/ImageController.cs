@@ -24,7 +24,6 @@ public class ImageController : ControllerBase
         var image = await imageService.GetImageAsync(id);
         if (!(await authorizationService.AuthorizeAsync(User, image, Requirements.ReadAccess)).Succeeded)
             return Forbid();
-        return PhysicalFile(Path.GetFullPath(Path.Combine(storageOptions.Value.ImageFolder, image.Path)),
-            image.MimeType);
+        return File(await imageService.GetImageStreamAsync(image), image.MimeType);
     }
 }

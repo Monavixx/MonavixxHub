@@ -1,12 +1,23 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Identity;
 using MonavixxHub.Api.Features.Auth.Models;
+using MonavixxHub.Api.Features.Auth.Services;
 
 namespace MonavixxHub.Api.Features.Auth.DTOs.Validation;
 
+/// <summary>
+/// Validates <see cref="RegisterDto"/> using FluentValidation rules
+/// that are not covered by standard Data Annotations.
+/// Includes additional validation for:
+/// <list type="bullet">
+/// <item>Email format using <see cref="EmailCheckService"/></item>
+/// <item>Password complexity (digit, uppercase, lowercase, punctuation)</item>
+/// </list>
+/// </summary>
 public class RegisterDtoValidator: AbstractValidator<RegisterDto>
 {
-    public RegisterDtoValidator(Services.EmailCheckService emailCheckService)
+    /// <inheritdoc />
+    public RegisterDtoValidator(EmailCheckService emailCheckService)
     {
         RuleFor(r => r.Email)
             .Must(emailCheckService.IsValid)

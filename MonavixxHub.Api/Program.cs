@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.IdentityModel.Tokens;
 using MonavixxHub.Api.Common;
 using MonavixxHub.Api.Common.Exceptions;
@@ -21,13 +20,18 @@ using MonavixxHub.Api.Infrastructure;
 using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Events;
+using Serilog.Templates;
+using Serilog.Templates.Themes;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using EmailCheckService = MonavixxHub.Api.Features.Auth.Services.EmailCheckService;
+
+Console.OutputEncoding = Encoding.UTF8;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSingleton<EmailCheckService>();
 builder.Services.AddSingleton<PasswordHashService>();
+builder.Services.AddSingleton<UniqueConstraintResolver>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddOpenApi();
@@ -46,11 +50,19 @@ builder.Services.AddProblemDetails();
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
+var logTemplate = "[{@t:HH:mm:ss} {@l:u3}]" +
+                  "{#if RequestId is not null} [{RequestId}]{#end}" +
+                  "{#if RequestPath is not null} {RequestPath}{#end}" +
+                  " ({#if ActionName is not null}{ActionName}{#else}{SourceContext}{#end})" +
+                  "{#if UserId is not null} (User: [{UserId}] {Username}){#end}" +
+                  " \n{@m}\n{@x}";
 builder.Host.UseSerilog((context, configuration) =>
     configuration
         .ReadFrom.Configuration(context.Configuration)
-        .WriteTo.Console(restrictedToMinimumLevel:LogEventLevel.Information)
-        .WriteTo.File(
+        .Enrich.FromLogContext()
+        .WriteTo.Console(new ExpressionTemplate(logTemplate, theme: TemplateTheme.Code),
+            restrictedToMinimumLevel: LogEventLevel.Information)
+        .WriteTo.File(new ExpressionTemplate(logTemplate),
             "logs/log-.txt",
             rollingInterval: RollingInterval.Day,
             restrictedToMinimumLevel: LogEventLevel.Verbose)
@@ -98,7 +110,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
-
+app.UseSerilogRequestLogging();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();

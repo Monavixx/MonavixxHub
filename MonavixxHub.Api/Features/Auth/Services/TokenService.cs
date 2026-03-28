@@ -6,8 +6,16 @@ using MonavixxHub.Api.Features.Auth.Models;
 
 namespace MonavixxHub.Api.Features.Auth.Services;
 
+/// <summary>
+/// Provides functionality to generate authentication tokens for users.
+/// </summary>
 public class TokenService (IConfiguration config)
 {
+    /// <summary>
+    /// Generates a JWT for the specified user.
+    /// </summary>
+    /// <param name="user">The user for whom the token will be generated.</param>
+    /// <returns>A string containing the JWT that can be used for authentication.</returns>
     public string GenerateToken(User user)
     {
         Claim[] claims =

@@ -6,11 +6,32 @@ using MonavixxHub.Api.Features.Flashcards.Services;
 
 namespace MonavixxHub.Api.Features.Flashcards.Controllers;
 
+/// <summary>
+/// Provides endpoints to manage flashcards within a flashcard set.
+/// </summary>
+/// <remarks>
+/// All endpoints require authentication. Users must have edit access to the flashcard set 
+/// and to the individual flashcards they are adding.
+/// </remarks>
 [ApiController]
 [Route("api/flashcard-sets/{flashcardSetId}/entries")]
 public class FlashcardSetEntryController
 (IAuthorizationService authorizationService) :  ControllerBase
 {
+    /// <summary>
+    /// Adds an existing flashcard to a specific flashcard set.
+    /// </summary>
+    /// <param name="flashcardSetId">The ID of the flashcard set to which the flashcard will be added.</param>
+    /// <param name="dto">Data containing the ID of the flashcard and optionally the order position.</param>
+    /// <param name="flashcardSetService">Service to access flashcard sets.</param>
+    /// <param name="flashcardService">Service to access flashcards.</param>
+    /// <param name="flashcardSetEntryService">Service to manage flashcard set entries.</param>
+    /// <returns>
+    /// - 204 No Content if the flashcard was successfully added.
+    /// - 403 Forbidden if the user is not authorized to modify the set or flashcard.
+    /// - 404 Not Found if the flashcard set or flashcard does not exist.
+    /// - 409 Conflict if there is a conflict in ordering or duplicate entries.
+    /// </returns>
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

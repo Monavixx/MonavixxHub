@@ -3,6 +3,9 @@ using MonavixxHub.Api.Features.Auth.Models;
 
 namespace MonavixxHub.Api.Features.Auth.DTOs;
 
+/// <summary>
+/// Represents the credentials provided by a user to register.
+/// </summary>
 public record RegisterDto
 (
     [StringLength(User.UsernameMaxLength, MinimumLength = User.UsernameMinLength)]
