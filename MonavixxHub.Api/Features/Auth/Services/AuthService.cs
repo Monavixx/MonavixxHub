@@ -1,4 +1,3 @@
-using EntityFramework.Exceptions.Common;
 using Microsoft.EntityFrameworkCore;
 using MonavixxHub.Api.Features.Auth.DTOs;
 using MonavixxHub.Api.Features.Auth.Exceptions;
@@ -51,7 +50,7 @@ public class AuthService(
     /// An <see cref="AuthResponseDto"/> containing the authentication token
     /// and the additional data of the newly registered user.
     /// </returns>
-    /// <exception cref="UniqueConstraintException">
+    /// <exception cref="DbUpdateException">
     /// Thrown if the username or email is already in use.
     /// </exception>
     public async ValueTask<AuthResponseDto> RegisterAsync(string username, string password, string email)

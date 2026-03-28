@@ -9,7 +9,7 @@ public class Flashcard
     public const int FrontMaxLength = 500;
     public const int BackMaxLength = 500;
     public const int TranslationMaxLength = 500;
-    public const int ImageMaxSize = 1024*1024*50;
+    public const int ImageMaxSize = 1024*1024*5;
     [Required] public Guid Id { get; set; } = Guid.NewGuid();
     [Required] public string Front { get; set; }
     [Required] public string Back { get; set; }

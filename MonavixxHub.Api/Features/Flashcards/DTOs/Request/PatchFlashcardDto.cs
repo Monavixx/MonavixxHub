@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using MonavixxHub.Api.Features.Flashcards.Models;
 
-namespace MonavixxHub.Api.Features.Flashcards.DTOs;
+namespace MonavixxHub.Api.Features.Flashcards.DTOs.Request;
 
 public record PatchFlashcardDto
 (

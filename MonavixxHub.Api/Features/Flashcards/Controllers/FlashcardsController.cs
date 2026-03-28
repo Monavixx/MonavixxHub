@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MonavixxHub.Api.Features.Flashcards.Authorization;
 using MonavixxHub.Api.Features.Flashcards.DTOs;
+using MonavixxHub.Api.Features.Flashcards.DTOs.Request;
+using MonavixxHub.Api.Features.Flashcards.DTOs.Response;
 using MonavixxHub.Api.Features.Flashcards.Models;
 using MonavixxHub.Api.Features.Flashcards.Services;
 

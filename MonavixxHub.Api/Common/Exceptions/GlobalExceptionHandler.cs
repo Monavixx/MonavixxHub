@@ -1,20 +1,24 @@
-using EntityFramework.Exceptions.Common;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using MonavixxHub.Api.Common.Exceptions.Resolvers;
 using MonavixxHub.Api.Infrastructure;
+using Npgsql;
 
 namespace MonavixxHub.Api.Common.Exceptions;
 
 public class GlobalExceptionHandler
     (IProblemDetailsService problemDetailsService,
-        ILogger<GlobalExceptionHandler> logger, UniqueConstraintResolver uniqueConstraintResolver) : IExceptionHandler
+        ILogger<GlobalExceptionHandler> logger, UniqueConstraintResolver uniqueConstraintResolver,
+        ForeignKeyConstraintResolver foreignKeyConstraintResolver) : IExceptionHandler
 {
-    public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
+    public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception,
+        CancellationToken cancellationToken)
     {
         var dbContext = httpContext.RequestServices.GetService<AppDbContext>()!;
-        
+
         var (code, message) = MapException(exception, dbContext);
-        Log(code, message);
+        Log(code, message, exception);
         httpContext.Response.StatusCode = code;
         var problemDetails = new ProblemDetails()
         {
@@ -22,10 +26,10 @@ public class GlobalExceptionHandler
             Title = message,
             Detail = GetSafeDetails(exception, httpContext)
         };
-        
-         await problemDetailsService.TryWriteAsync(new ProblemDetailsContext()
+
+        await problemDetailsService.TryWriteAsync(new ProblemDetailsContext()
         {
-            HttpContext =  httpContext,
+            HttpContext = httpContext,
             ProblemDetails = problemDetails
         });
         return true;
@@ -35,8 +39,17 @@ public class GlobalExceptionHandler
         => exception switch
         {
             AppBaseException e => ((int)e.StatusCode, e.Message),
-            UniqueConstraintException e => (StatusCodes.Status409Conflict,
-                uniqueConstraintResolver.Resolve(e,dbContext) ?? e.Message),
+            DbUpdateException { InnerException: PostgresException { ConstraintName: not null } pe } =>
+                pe.SqlState switch
+                {
+                    PostgresErrorCodes.UniqueViolation =>
+                        (StatusCodes.Status409Conflict, uniqueConstraintResolver.Resolve(pe, dbContext) ?? pe.Message),
+                    PostgresErrorCodes.ForeignKeyViolation =>
+                        (StatusCodes.Status422UnprocessableEntity,
+                            foreignKeyConstraintResolver.Resolve(pe, dbContext) ?? pe.Message),
+                    _ => (StatusCodes.Status500InternalServerError,
+                        "An unexpected postgres error occured: [" + pe.SqlState + "] " + pe.Message)
+                },
             _ => (StatusCodes.Status500InternalServerError, "An unexpected error occured")
         };
 
@@ -44,23 +57,26 @@ public class GlobalExceptionHandler
     {
         if (httpContext.RequestServices.GetService<IHostEnvironment>()!.IsDevelopment())
         {
-            return exception.Message;
+            return exception.InnerException?.Message ?? exception.Message;
         }
         return (exception is AppBaseException e ? e.Message : null);
     }
 
-    private void Log(int statusCode, string message)
+    private void Log(int statusCode, string message, Exception exception)
     {
         switch (statusCode)
         {
             case >= 500:
-                logger.LogError("Status code {StatusCode}: {Message}", statusCode, message);
+                logger.LogError("[Code {StatusCode}] {ExceptionClass}: {Message}", statusCode,
+                    exception.GetType().Name, message);
                 break;
             case >= 400:
-                logger.LogInformation("Status code {StatusCode}: {Message}", statusCode, message);
+                logger.LogInformation("[Code {StatusCode}] {ExceptionClass}: {Message}", statusCode,
+                    exception.GetType().Name, message);
                 break;
             default:
-                logger.LogDebug("Status code {StatusCode}: {Message}", statusCode, message);
+                logger.LogDebug("[Code {StatusCode}] {ExceptionClass}: {Message}", statusCode,
+                    exception.GetType().Name, message);
                 break;
         }
     }

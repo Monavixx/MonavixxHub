@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using MonavixxHub.Api.Features.Auth.Extensions;
 using MonavixxHub.Api.Features.Flashcards.DTOs;
+using MonavixxHub.Api.Features.Flashcards.DTOs.Request;
 using MonavixxHub.Api.Features.Flashcards.Exceptions;
 using MonavixxHub.Api.Features.Flashcards.Models;
 using MonavixxHub.Api.Features.Images.Models;
@@ -24,7 +25,7 @@ public class FlashcardService (IImageService imageService, AppDbContext dbContex
     /// <returns>The created flashcard.</returns>
     public async ValueTask<Flashcard> CreateAsync(CreateFlashcardDto dto, ClaimsPrincipal user)
     {
-        logger.LogInformation($"Creating Flashcard ({dto.Front} - {dto.Back})");
+        logger.LogDebug($"Creating Flashcard ({dto.Front} - {dto.Back})");
         Image? image = null;
         if(dto.Image is not null)
         {
@@ -44,7 +45,7 @@ public class FlashcardService (IImageService imageService, AppDbContext dbContex
         };
         dbContext.Flashcards.Add(flashcard);
         await dbContext.SaveChangesAsync();
-        logger.LogInformation($"Flashcard created ({flashcard.Id})");
+        logger.LogInformation($"Flashcard [{flashcard.Id}] created successfully");
         return flashcard;
     }
 
@@ -56,22 +57,34 @@ public class FlashcardService (IImageService imageService, AppDbContext dbContex
     /// <param name="dto">Fields to update (null values are skipped).</param>
     public async ValueTask PatchAsync(Flashcard flashcard, PatchFlashcardDto dto)
     {
+        logger.LogDebug("Patching Flashcard [{FlashcardId}]...", flashcard.Id);
+        List<string> patchedFields = new(4);
         if (dto.Image is not null)
         {
+            var image = await imageService.SaveImageAsync(dto.Image.OpenReadStream(), dto.Image.ContentType);
             if (flashcard.ImageId is not null)
                 await imageService.DecrementRcAndDeleteIfUnusedAsync(flashcard.ImageId.Value);
-            var image = await imageService.SaveImageAsync(dto.Image.OpenReadStream(), dto.Image.ContentType);
             flashcard.ImageId = image.Id;
+            patchedFields.Add(nameof(Flashcard.ImageId));
         }
-        if(dto.Back is not null)
-            flashcard.Back = dto.Back;
-        if(dto.Transcription is not null)
-            flashcard.Transcription = dto.Transcription;
-        if(dto.Front is not null)
-            flashcard.Front = dto.Front;
+
+        PatchIfNotNull(dto.Back, s => flashcard.Back = s, nameof(Flashcard.Back));
+        PatchIfNotNull(dto.Front, s => flashcard.Front = s, nameof(Flashcard.Front));
+        PatchIfNotNull(dto.Transcription, s => flashcard.Transcription = s, nameof(Flashcard.Transcription));
+
         flashcard.UpdatedAt = DateTimeOffset.UtcNow;
         await dbContext.SaveChangesAsync();
+        logger.LogInformation("Flashcard [{FlashcardId}] patched successfully with the following fields: {PatchedFields}",
+            flashcard.Id, string.Join(", ", patchedFields));
+        void PatchIfNotNull<T>(T? value, Action<T> setter, string propertyName)
+        {
+            if (value is null) return;
+            setter(value);
+            patchedFields.Add(propertyName);
+        }
     }
+
+    
 
     /// <summary>
     /// Updates the specified flashcard. The changes even include provided null fields.
@@ -80,17 +93,15 @@ public class FlashcardService (IImageService imageService, AppDbContext dbContex
     /// <param name="dto">Fields to update.</param>
     public async ValueTask UpdateAsync(Flashcard flashcard, UpdateFlashcardDto dto)
     {
+        logger.LogDebug("Updating Flashcard [{FlashcardId}]...", flashcard.Id);
         flashcard.Front = dto.Front;
         flashcard.Back = dto.Back;
         flashcard.Transcription = dto.Transcription;
-        if (dto.Image is null)
-        {
-            if (flashcard.ImageId is not null)
-            {
-                await imageService.DecrementRcAndDeleteIfUnusedAsync(flashcard.ImageId.Value);
-                flashcard.ImageId = null;
-            }
-        }
+        
+        if (flashcard.ImageId is not null)
+            await imageService.DecrementRcAndDeleteIfUnusedAsync(flashcard.ImageId.Value);
+        
+        if (dto.Image is null) flashcard.ImageId = null;
         else
         {
             var image = await imageService.SaveImageAsync(dto.Image.OpenReadStream(), dto.Image.ContentType);
@@ -98,6 +109,7 @@ public class FlashcardService (IImageService imageService, AppDbContext dbContex
         }
         flashcard.UpdatedAt = DateTimeOffset.UtcNow;
         await dbContext.SaveChangesAsync();
+        logger.LogInformation("Flashcard [{FlashcardId}] updated successfully", flashcard.Id);
     }
 
     /// <summary>
@@ -107,6 +119,7 @@ public class FlashcardService (IImageService imageService, AppDbContext dbContex
     /// <returns>An IQueryable collection that can be further filtered or projected.</returns>
     public IQueryable<Flashcard> GetAll(ClaimsPrincipal user)
     {
+        logger.LogDebug("Getting all flashcards owned by current user");
         int userId = user.GetUserId();
         return dbContext.Flashcards.Where(x => x.OwnerId == userId);
     }
@@ -119,10 +132,12 @@ public class FlashcardService (IImageService imageService, AppDbContext dbContex
     /// <param name="flashcard">The flashcard to delete.</param>
     public async ValueTask DeleteAsync(Flashcard flashcard)
     {
+        logger.LogDebug("Deleting Flashcard [{FlashcardId}]...", flashcard.Id);
         if(flashcard.ImageId is not null)
             await imageService.DecrementRcAndDeleteIfUnusedAsync(flashcard.ImageId.Value);
         dbContext.Remove(flashcard);
         await dbContext.SaveChangesAsync();
+        logger.LogInformation("Flashcard [{FlashcardId}] deleted successfully", flashcard.Id);
     }
 
     /// <summary>
@@ -147,6 +162,7 @@ public class FlashcardService (IImageService imageService, AppDbContext dbContex
     /// <exception cref="FlashcardNotFoundException">Thrown if there is no flashcard with the specified ID.</exception>
     public async ValueTask<Flashcard> GetAsync(Guid id)
     {
+        logger.LogDebug("Getting Flashcard [{FlashcardId}]...", id);
         return await dbContext.Flashcards.FindAsync(id) ?? throw new FlashcardNotFoundException();
     }
 }

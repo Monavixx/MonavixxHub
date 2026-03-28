@@ -1,5 +1,4 @@
 using System.Text;
-using EntityFramework.Exceptions.PostgreSQL;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -8,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using MonavixxHub.Api.Common;
 using MonavixxHub.Api.Common.Exceptions;
+using MonavixxHub.Api.Common.Exceptions.Resolvers;
 using MonavixxHub.Api.Common.Options;
 using MonavixxHub.Api.Common.Options.RateLimiting;
 using MonavixxHub.Api.Features.Auth.Middlewares;
@@ -32,6 +32,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<EmailCheckService>();
 builder.Services.AddSingleton<PasswordHashService>();
 builder.Services.AddSingleton<UniqueConstraintResolver>();
+builder.Services.AddSingleton<ForeignKeyConstraintResolver>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddOpenApi();
@@ -40,6 +41,7 @@ builder.Services.Configure<RateLimitingOptions>(builder.Configuration.GetSection
 builder.Services.AddScoped<IImageService, ImageService>();
 builder.Services.AddScoped<FlashcardService>();
 builder.Services.AddScoped<FlashcardSetService>();
+builder.Services.AddScoped<FlashcardSetEntryService>();
 builder.Services.AddScoped<FlashcardAccessService>();
 builder.Services.AddScoped<ImageAccessService>();
 builder.Services.AddSingleton<IAuthorizationHandler, FlashcardSetAuthorizationHandler>();
@@ -61,7 +63,7 @@ builder.Host.UseSerilog((context, configuration) =>
         .ReadFrom.Configuration(context.Configuration)
         .Enrich.FromLogContext()
         .WriteTo.Console(new ExpressionTemplate(logTemplate, theme: TemplateTheme.Code),
-            restrictedToMinimumLevel: LogEventLevel.Information)
+            restrictedToMinimumLevel: LogEventLevel.Verbose)
         .WriteTo.File(new ExpressionTemplate(logTemplate),
             "logs/log-.txt",
             rollingInterval: RollingInterval.Day,
@@ -91,7 +93,7 @@ builder.Services.AddControllers();
 builder.Services.AddDbContext<AppDbContext>(optionsBuilder =>
 {
     optionsBuilder.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
-        .UseExceptionProcessor();
+        ;//.EnableSensitiveDataLogging();
 });
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>

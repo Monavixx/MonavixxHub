@@ -8,7 +8,6 @@ using MonavixxHub.Api.Features.Images.Models;
 using MonavixxHub.Api.Infrastructure;
 
 namespace MonavixxHub.Api.Features.Images.Services;
-// TODO: Add compression
 
 /// <summary>
 /// Provides memory-efficient methods to create, retrieve and delete images.

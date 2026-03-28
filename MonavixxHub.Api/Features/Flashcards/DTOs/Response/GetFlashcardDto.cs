@@ -1,6 +1,6 @@
 using MonavixxHub.Api.Features.Flashcards.Models;
 
-namespace MonavixxHub.Api.Features.Flashcards.DTOs;
+namespace MonavixxHub.Api.Features.Flashcards.DTOs.Response;
 
 public record GetFlashcardDto
 (
