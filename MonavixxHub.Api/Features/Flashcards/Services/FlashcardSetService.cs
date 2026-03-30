@@ -19,22 +19,23 @@ public class FlashcardSetService (AppDbContext dbContext, ILogger<FlashcardSetSe
     /// <param name="dto">Data used to create the flashcard set.</param>
     /// <param name="owner">User who will own the flashcard set.</param>
     /// <returns>The newly created flashcard set.</returns>
-    /// <exception cref="FlashcardSetNotFoundException">
+    /// <exception cref="DbUpdateException">
     /// Thrown if the specified parent flashcard set doesn't exist.
     /// </exception>
     public async ValueTask<FlashcardSet> CreateAsync(CreateFlashcardSetDto dto, ClaimsPrincipal owner)
     {
-        
-        //if(dto.ParentSetId is not null) await VerifyFlashcardSetExists(dto.ParentSetId.Value);
+        logger.LogDebug("Creating FlashcardSet '{FlashcardSetName}'", dto.Name);
         var flashcardSet = new FlashcardSet
         {
             Name = dto.Name,
             ParentSetId = dto.ParentSetId,
             OwnerId = owner.GetUserId(),
-            IsPublic =  dto.IsPublic
+            IsPublic = dto.IsPublic
         };
         dbContext.FlashcardSets.Add(flashcardSet);
         await dbContext.SaveChangesAsync();
+        logger.LogInformation("FlashcardSet [{FlashcardSetId}] {FlashcardSetName} created successfully",
+            flashcardSet.Id, flashcardSet.Name);
         return flashcardSet;
     }
 
@@ -48,13 +49,23 @@ public class FlashcardSetService (AppDbContext dbContext, ILogger<FlashcardSetSe
     /// All fields in <paramref name="dto"/> are applied unconditionally.
     /// Unlike patch-style updates, null values will overwrite existing data.
     /// </remarks>
-    public async ValueTask<FlashcardSet> UpdateAsync(FlashcardSet flashcardSet, UpdateFlashcardSetDto dto)
+    public async Task<FlashcardSet> UpdateAsync(FlashcardSet flashcardSet, UpdateFlashcardSetDto dto)
     {
+        logger.LogDebug("Updating FlashcardSet [{FlashcardSetId}]", flashcardSet.Id);
         flashcardSet.Name = dto.Name;
         flashcardSet.ParentSetId = dto.ParentSetId;
         flashcardSet.IsPublic = dto.IsPublic;
         await dbContext.SaveChangesAsync();
+        logger.LogInformation("FlashcardSet [{FlashcardSetId}] updated successfully", flashcardSet.Id);
         return flashcardSet;
+    }
+
+    public async Task DeleteAsync(FlashcardSet flashcardSet)
+    {
+        logger.LogDebug("Deleting FlashcardSet [{FlashcardSetId}]...", flashcardSet.Id);
+        dbContext.FlashcardSets.Remove(flashcardSet);
+        await dbContext.SaveChangesAsync();
+        logger.LogInformation("FlashcardSet [{FlashcardSetId}] deleted successfully", flashcardSet.Id);
     }
 
     /// <summary>
@@ -66,18 +77,9 @@ public class FlashcardSetService (AppDbContext dbContext, ILogger<FlashcardSetSe
     /// Thrown if a flashcard set with the specified ID doesn't exist.
     /// </exception>
     public async Task<FlashcardSet> GetAsync(Guid setId)
-        => await dbContext.FlashcardSets.FindAsync(setId) ?? throw new FlashcardSetNotFoundException();
-
-    /// <summary>
-    /// Verifies that a flashcard set with the specified ID exist by throwing an exception if it doesn't.
-    /// </summary>
-    /// <param name="setId">ID of the flashcard set to verify.</param>
-    /// <exception cref="FlashcardSetNotFoundException">
-    /// Thrown if a flashcard set with the specified ID doesn't exist.
-    /// </exception>
-    public async Task VerifyFlashcardSetExists(Guid setId)
     {
-        if (await dbContext.FlashcardSets.FindAsync(setId) is null) throw new FlashcardSetNotFoundException();
+        logger.LogDebug("Getting FlashcardSet [{FlashcardSetId}]...", setId);
+        return await dbContext.FlashcardSets.FindAsync(setId) ?? throw new FlashcardSetNotFoundException();
     }
 
     /// <summary>
@@ -124,6 +126,16 @@ public class FlashcardSetService (AppDbContext dbContext, ILogger<FlashcardSetSe
             if (allLoaded)
                 return;
         }
+        await entriesCollection
+            .Query()
+            .Include(e => e.Flashcard)
+            .LoadAsync();
+    }
+    public async ValueTask EnsureEntriesLoadedAsync(FlashcardSet flashcardSet)
+    {
+        var entriesCollection = dbContext.Entry(flashcardSet)
+            .Collection(f => f.Entries);
+        if (entriesCollection.IsLoaded) return;
         await entriesCollection
             .Query()
             .Include(e => e.Flashcard)

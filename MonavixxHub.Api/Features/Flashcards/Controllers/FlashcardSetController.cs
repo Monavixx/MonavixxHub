@@ -18,7 +18,7 @@ namespace MonavixxHub.Api.Features.Flashcards.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/flashcard-sets")]
-public class FlashcardSetController(IAuthorizationService authorizationService) : ControllerBase
+public class FlashcardSetController(IAuthorizationService authorizationService, FlashcardSetService flashcardSetService) : ControllerBase
 {
     /// <summary>
     /// Retrieves a specific flashcard set by its unique identifier.
@@ -28,7 +28,6 @@ public class FlashcardSetController(IAuthorizationService authorizationService) 
     /// <param name="ordered">Whether to sort the entries in the response or not.
     /// Ignores if <paramref name="includeEntries"/> is false.
     /// Default to true.</param>
-    /// <param name="flashcardSetService">Service used to access flashcard sets.</param>
     /// <returns>
     /// - 200 OK with <see cref="GetFlashcardSetDto"/> if the user has read access.
     /// - 403 Forbidden if the user is not authorized.
@@ -40,10 +39,8 @@ public class FlashcardSetController(IAuthorizationService authorizationService) 
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async ValueTask<IActionResult> Get(Guid id, 
         [FromQuery(Name="entries")] bool? includeEntries,
-        [FromQuery(Name="ordered")] bool? ordered,
-        [FromServices] FlashcardSetService flashcardSetService)
+        [FromQuery(Name="ordered")] bool? ordered)
     {
-        // TODO: add a query boolean parameter that determines whether to include entries or not.
         var flashcardSet = await flashcardSetService.GetAsync(id);
         var authorizationResult =
             await authorizationService.AuthorizeAsync(User, flashcardSet, Requirements.FlashcardSet.ReadAccess);
@@ -65,7 +62,6 @@ public class FlashcardSetController(IAuthorizationService authorizationService) 
     /// Creates a new flashcard set for the authenticated user.
     /// </summary>
     /// <param name="dto">Data required to create a flashcard set.</param>
-    /// <param name="flashcardSetService">Service used to access flashcard sets.</param>
     /// <returns>
     /// - 201 Created with <see cref="GetFlashcardSetDto"/> for the newly created flashcard set.
     /// - 404 Not Found if a related resource does not exist.
@@ -73,8 +69,7 @@ public class FlashcardSetController(IAuthorizationService authorizationService) 
     [HttpPost]
     [ProducesResponseType<GetFlashcardSetDto>(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async ValueTask<IActionResult> Create([FromBody] CreateFlashcardSetDto dto,
-        [FromServices] FlashcardSetService flashcardSetService)
+    public async ValueTask<IActionResult> Create([FromBody] CreateFlashcardSetDto dto)
     {
         var flashcardSet = await flashcardSetService.CreateAsync(dto, User);
         return CreatedAtAction(nameof(Get), 
@@ -85,7 +80,6 @@ public class FlashcardSetController(IAuthorizationService authorizationService) 
     /// </summary>
     /// <param name="id">The ID of the flashcard set to update.</param>
     /// <param name="dto">Data used to update the flashcard set.</param>
-    /// <param name="flashcardSetService">Service used to access flashcard sets.</param>
     /// <returns>
     /// - 200 OK with <see cref="GetFlashcardSetDto"/> if the user has edit access.
     /// - 403 Forbidden if the user is not authorized.
@@ -95,8 +89,7 @@ public class FlashcardSetController(IAuthorizationService authorizationService) 
     [ProducesResponseType<GetFlashcardSetDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async ValueTask<IActionResult> Put(Guid id, [FromBody] UpdateFlashcardSetDto dto,
-        [FromServices] FlashcardSetService flashcardSetService)
+    public async Task<IActionResult> Put(Guid id, [FromBody] UpdateFlashcardSetDto dto)
     {
         var flashcardSet = await flashcardSetService.GetAsync(id);
         var authorizationResult =
@@ -104,5 +97,18 @@ public class FlashcardSetController(IAuthorizationService authorizationService) 
         if (authorizationResult.Succeeded)
             return Ok(new GetFlashcardSetDto(await flashcardSetService.UpdateAsync(flashcardSet, dto)));
         return Forbid();
+    }
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        var flashcardSet = await flashcardSetService.GetAsync(id);
+        var authorizationResult =
+            await authorizationService.AuthorizeAsync(User, flashcardSet, Requirements.FlashcardSet.EditAccess);
+        if (!authorizationResult.Succeeded) return Forbid();
+        await flashcardSetService.DeleteAsync(flashcardSet);
+        return NoContent();
     }
 }

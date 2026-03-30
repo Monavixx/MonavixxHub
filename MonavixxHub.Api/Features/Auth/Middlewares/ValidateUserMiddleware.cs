@@ -45,8 +45,11 @@ public class ValidateUserMiddleware(RequestDelegate next, ILogger<ValidateUserMi
                 return;
             }
 
-            logger.LogInformation("Checking user existence...");
-            if (!await dbContext.Users.AnyAsync(x => x.Id == userId && x.Username == username && x.Email == email))
+            logger.LogInformation("Checking user's role...");
+            var user = await dbContext.Users
+                .Where(x => x.Id == userId && x.Username == username && x.Email == email)
+                .SingleOrDefaultAsync();
+            if (user is null)
             {
                 logger.LogWarning(
                     "Authenticated user not found in database. Rejecting request.");
@@ -54,7 +57,9 @@ public class ValidateUserMiddleware(RequestDelegate next, ILogger<ValidateUserMi
                 return;
             }
 
-            logger.LogInformation("User validated successfully");
+            var role = Enum.GetName(user.Role)!;
+            context.User.AddIdentity(new ClaimsIdentity([new Claim(ClaimTypes.Role, role)]));
+            logger.LogInformation("User validated successfully [Role: {Role}]", role);
             await next(context);
             return;
         }

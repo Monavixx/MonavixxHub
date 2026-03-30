@@ -13,7 +13,7 @@ public interface IImageService
     /// </summary>
     /// <param name="image">Image to retrieve.</param>
     /// <returns>Raw image bytes.</returns>
-    ValueTask<Stream> GetImageStreamAsync(Image image);
+    Stream GetImageStream(Image image);
     /// <summary>
     /// Returns the image entity with the specified ID.
     /// </summary>
@@ -31,7 +31,7 @@ public interface IImageService
     /// Thrown if <paramref name="addReferenceCount"/> is less than 1.
     /// </exception>
     /// <returns>The saved or existing image entity.</returns>
-    ValueTask<Image> SaveImageAsync(Stream stream, string mimeType, int addReferenceCount = 1);
+    Task<Image> SaveImageAsync(Stream stream, string mimeType, int addReferenceCount = 1);
     /// <summary>
     /// Increments reference count of the specified image.
     /// </summary>
@@ -48,5 +48,6 @@ public interface IImageService
     /// <exception cref="ImageNotFoundException">
     /// Thrown if the image doesn't exist.
     /// </exception>
-    ValueTask DecrementRcAndDeleteIfUnusedAsync(Guid imageId);
+    Task DecrementRcAndDeleteIfUnusedAsync(Guid imageId);
+    Task DecrementRcAndDeleteIfUnusedAsync(ICollection<Guid> imageIds);
 }

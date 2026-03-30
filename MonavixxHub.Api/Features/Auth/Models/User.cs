@@ -63,4 +63,6 @@ public class User
     /// </summary>
     [Required] 
     public DateTimeOffset CreatedAt { get; set; }
+    
+    [Required] public UserRole Role { get; set; } = UserRole.User;
 }

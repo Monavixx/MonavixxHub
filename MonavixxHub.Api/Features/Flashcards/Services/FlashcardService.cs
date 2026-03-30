@@ -15,7 +15,8 @@ namespace MonavixxHub.Api.Features.Flashcards.Services;
 /// Handles flashcard creation, retrieval, and modification.
 /// Each flashcard belongs to a specific user and can optionally contain an image.
 /// </summary>
-public class FlashcardService (IImageService imageService, AppDbContext dbContext, ILogger<FlashcardService> logger)
+public class FlashcardService (IImageService imageService, AppDbContext dbContext, ILogger<FlashcardService> logger,
+    FlashcardSetEntryService flashcardSetEntryService)
 {
     /// <summary>
     /// Creates a new flashcard for the specified user.
@@ -23,7 +24,16 @@ public class FlashcardService (IImageService imageService, AppDbContext dbContex
     /// <param name="dto">Flashcard data including front, back, and optional image.</param>
     /// <param name="user">User creating the flashcard.</param>
     /// <returns>The created flashcard.</returns>
-    public async ValueTask<Flashcard> CreateAsync(CreateFlashcardDto dto, ClaimsPrincipal user)
+    public async Task<Flashcard> CreateAsync(CreateFlashcardDto dto, ClaimsPrincipal user)
+    {
+        var flashcard = await CreateCoreAsync(dto, user);
+        await dbContext.SaveChangesAsync();
+        logger.LogInformation($"Flashcard [{flashcard.Id}] created successfully");
+
+        return flashcard;
+    }
+
+    public async ValueTask<Flashcard> CreateCoreAsync(CreateFlashcardDto dto, ClaimsPrincipal user)
     {
         logger.LogDebug($"Creating Flashcard ({dto.Front} - {dto.Back})");
         Image? image = null;
@@ -44,8 +54,11 @@ public class FlashcardService (IImageService imageService, AppDbContext dbContex
             ImageId = image?.Id
         };
         dbContext.Flashcards.Add(flashcard);
-        await dbContext.SaveChangesAsync();
-        logger.LogInformation($"Flashcard [{flashcard.Id}] created successfully");
+        if (dto.FlashcardSetId is {} fsi)
+        {
+            await flashcardSetEntryService.AddFlashcardToTheEndCoreAsync(fsi, flashcard.Id);
+        }
+        
         return flashcard;
     }
 

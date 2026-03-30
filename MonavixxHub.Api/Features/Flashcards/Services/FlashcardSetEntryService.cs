@@ -19,17 +19,9 @@ public class FlashcardSetEntryService (AppDbContext dbContext, ILogger<Flashcard
     /// <exception cref="FlashcardAlreadyInSetException">
     /// Thrown if the flashcard is already a member of the specified set.
     /// </exception>
-    public async ValueTask AddFlashcardAsync(Guid flashcardSetId, Guid flashcardId, int order)
+    public async Task AddFlashcardAsync(Guid flashcardSetId, Guid flashcardId, int order)
     {
-        logger.LogDebug("Adding Flashcard [{FlashcardId}] to FlashcardSet [{FlashcardSetId}]", 
-            flashcardId, flashcardSetId);
-        
-        dbContext.FlashcardSetEntries.Add(new FlashcardSetEntry()
-        {
-            FlashcardId = flashcardId,
-            Order = order,
-            FlashcardSetId = flashcardSetId
-        });
+        await AddFlashcardCoreAsync(flashcardSetId, flashcardId, order);
         
         await dbContext.SaveChangesAsync();
         logger.LogInformation("Flashcard [{FlashcardId}] added to FlashcardSet [{FlashcardSetId}] with order [{Order}]",
@@ -44,28 +36,31 @@ public class FlashcardSetEntryService (AppDbContext dbContext, ILogger<Flashcard
     /// <exception cref="FlashcardAlreadyInSetException">
     /// Thrown if the flashcard is already a member of the specified set.
     /// </exception>
-    public async ValueTask AddFlashcardToTheEndAsync(Guid flashcardSetId, Guid flashcardId)
+    public async Task AddFlashcardToTheEndAsync(Guid flashcardSetId, Guid flashcardId)
     {
-        // await ThrowIfIncludesFlashcardAsync(flashcardSetId, flashcardId);
-        int maxOrder = await dbContext.FlashcardSetEntries.Where(x => x.FlashcardSetId == flashcardSetId)
-            .MaxAsync(x => (int?)x.Order) ?? 0;
-        await AddFlashcardAsync(flashcardSetId, flashcardId, maxOrder + 1);
+        await AddFlashcardToTheEndCoreAsync(flashcardSetId, flashcardId);
+        await dbContext.SaveChangesAsync();
+        logger.LogInformation("Flashcard [{FlashcardId}] added to FlashcardSet [{FlashcardSetId}]",
+            flashcardId, flashcardSetId);
+    }
+    //todo: pagination, admin functionality, logs
+    public async ValueTask AddFlashcardCoreAsync(Guid flashcardSetId, Guid flashcardId, int order)
+    {
+        logger.LogDebug("Adding Flashcard [{FlashcardId}] to FlashcardSet [{FlashcardSetId}]", 
+            flashcardId, flashcardSetId);
+        
+        dbContext.FlashcardSetEntries.Add(new FlashcardSetEntry()
+        {
+            FlashcardId = flashcardId,
+            Order = order,
+            FlashcardSetId = flashcardSetId
+        });
     }
 
-    /*private async ValueTask ThrowIfIncludesFlashcardAsync(Guid flashcardSetId, Guid flashcardId)
+    public async Task AddFlashcardToTheEndCoreAsync(Guid flashcardSetId, Guid flashcardId)
     {
-        if (await HasFlashcardAsync(flashcardSetId, flashcardId)) throw new FlashcardAlreadyInSetException();
-    }*/
-
-    /*// <summary>
-    /// Checks if the specified flashcard is a member of the specified set.
-    /// </summary>
-    /// <param name="flashcardSetId">ID of the set to check in.</param>
-    /// <param name="flashcardId">ID of the flashcard to check.</param>
-    /// <returns>true if the specified flashcard is a member of the specified set, false otherwise.</returns>
-    /*public async ValueTask<bool> HasFlashcardAsync(Guid flashcardSetId, Guid flashcardId)
-    {
-        return await dbContext.FlashcardSetEntries.AnyAsync(x =>
-            x.FlashcardId == flashcardId && x.FlashcardSetId == flashcardSetId);
-    }*/
+        int maxOrder = await dbContext.FlashcardSetEntries.Where(x => x.FlashcardSetId == flashcardSetId)
+            .MaxAsync(x => (int?)x.Order) ?? 0;
+        await AddFlashcardCoreAsync(flashcardSetId, flashcardId, maxOrder + 1);
+    }
 }

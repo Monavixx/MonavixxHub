@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using MonavixxHub.Api.Features.Flashcards.Models;
 
 namespace MonavixxHub.Api.Features.Images.Models;
 
@@ -10,4 +11,6 @@ public class Image
     [Required] public string MimeType { get; set; }
     [Required] public byte[] Hash { get; set; }
     [Required] public int ReferenceCount { get; set; }
+    
+    public ICollection<Flashcard> Flashcards { get; set; } = [];
 }

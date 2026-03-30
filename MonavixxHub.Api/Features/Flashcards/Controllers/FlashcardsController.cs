@@ -73,12 +73,20 @@ public class FlashcardsController(FlashcardService flashcardService) : Controlle
     /// </returns>
     [HttpPost]
     [ProducesResponseType<GetFlashcardDto>(StatusCodes.Status201Created)]
-    public async ValueTask<IActionResult> Create([FromForm] CreateFlashcardDto dto)
+    public async ValueTask<IActionResult> Create([FromForm] CreateFlashcardDto dto, [FromServices]
+        FlashcardSetEntryService flashcardSetEntryService,
+        [FromServices]IAuthorizationService authorizationService,
+        [FromServices] FlashcardSetService flashcardSetService)
     {
+        if (dto.FlashcardSetId is { } fsi &&
+            !(await authorizationService.AuthorizeAsync(User, await flashcardSetService.GetAsync(fsi),
+                Requirements.FlashcardSet.EditAccess)).Succeeded)
+            return Forbid();
         var flashcard = await flashcardService.CreateAsync(dto, User);
+        
         return CreatedAtAction(nameof(Get), new { id = flashcard.Id }, GetFlashcardDto.FromFlashcard(flashcard));
     }
-
+    //todo: delete user (take into account images' reference count
     /// <summary>
     /// Partially updates a flashcard if the current user has edit access.
     /// </summary>

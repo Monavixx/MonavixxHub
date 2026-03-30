@@ -50,7 +50,7 @@ public class GlobalExceptionHandler
                     _ => (StatusCodes.Status500InternalServerError,
                         "An unexpected postgres error occured: [" + pe.SqlState + "] " + pe.Message)
                 },
-            _ => (StatusCodes.Status500InternalServerError, "An unexpected error occured")
+            _ => (StatusCodes.Status500InternalServerError, "An unexpected error occured: " + exception)
         };
 
     private static string? GetSafeDetails(Exception exception, HttpContext httpContext)
