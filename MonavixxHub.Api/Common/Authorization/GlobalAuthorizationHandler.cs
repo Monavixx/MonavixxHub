@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using MonavixxHub.Api.Features.Auth.Models;
 
-namespace MonavixxHub.Api.Features.Auth.Handlers;
+namespace MonavixxHub.Api.Common.Authorization;
 
-public class AdminAuthorizationHandler : IAuthorizationHandler
+public class GlobalAuthorizationHandler : IAuthorizationHandler
 {
     public Task HandleAsync(AuthorizationHandlerContext context)
     {

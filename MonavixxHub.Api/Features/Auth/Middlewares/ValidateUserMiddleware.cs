@@ -57,6 +57,12 @@ public class ValidateUserMiddleware(RequestDelegate next, ILogger<ValidateUserMi
                 return;
             }
 
+            if (user.IsBanned)
+            {
+                logger.LogInformation("The user is banned. Rejecting request.");
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return;
+            }
             var role = Enum.GetName(user.Role)!;
             context.User.AddIdentity(new ClaimsIdentity([new Claim(ClaimTypes.Role, role)]));
             logger.LogInformation("User validated successfully [Role: {Role}]", role);

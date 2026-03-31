@@ -1,6 +1,8 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MonavixxHub.Api.Features.Admin.Authorization;
 using MonavixxHub.Api.Features.Admin.DTOs;
 using MonavixxHub.Api.Features.Auth.Models;
 using MonavixxHub.Api.Features.Auth.Services;
@@ -33,6 +35,17 @@ public class AdminController : ControllerBase
         [FromBody] [MinLength(1)] ISet<UserIdType> userIds)
     {
         await userService.DeleteUsers(userIds);
+        return NoContent();
+    }
+
+    [HttpPost("users/{userId}/ban")]
+    public async Task<IActionResult> Ban([FromServices] UserService userService, UserIdType userId,
+        [FromServices] IAuthorizationService authorizationService)
+    {
+        var user = await userService.GetUserAsync(userId);
+        if(!(await authorizationService.AuthorizeAsync(User, user, Requirements.Ban)).Succeeded)
+            return Forbid();
+        await userService.BanAsync(user);
         return NoContent();
     }
 }

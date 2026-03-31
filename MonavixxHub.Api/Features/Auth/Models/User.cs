@@ -65,4 +65,5 @@ public class User
     public DateTimeOffset CreatedAt { get; set; }
     
     [Required] public UserRole Role { get; set; } = UserRole.User;
+    [Required] public bool IsBanned { get; set; } = false;
 }

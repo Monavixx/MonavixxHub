@@ -17,6 +17,11 @@ public class UserService (AppDbContext dbContext)
         return GetAllUsers().Skip(page * limit).Take(limit);
     }
 
+    public async Task<User> GetUserAsync(UserIdType userId)
+    {
+        return await dbContext.Users.Where(u => u.Id == userId).SingleOrDefaultAsync() ?? throw new UserDoesNotExistException();
+    }
+
     public async Task DeleteUser(UserIdType userId)
     {
         // dbContext.Flashcards.Where(f => f.OwnerId == userId)
@@ -35,5 +40,11 @@ public class UserService (AppDbContext dbContext)
             await transaction.RollbackAsync();
             throw new UserDoesNotExistException();
         }
+    }
+
+    public async Task BanAsync(User user)
+    {
+        user.IsBanned = true;
+        await dbContext.SaveChangesAsync();
     }
 }
