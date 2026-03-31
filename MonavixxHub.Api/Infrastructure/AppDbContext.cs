@@ -14,9 +14,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     }
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<Session> Sessions => Set<Session>();
     public DbSet<Image> Images => Set<Image>();
     public DbSet<Flashcard> Flashcards => Set<Flashcard>();
     public DbSet<FlashcardSetEntry> FlashcardSetEntries => Set<FlashcardSetEntry>();
     public DbSet<FlashcardSet> FlashcardSets => Set<FlashcardSet>();
     public DbSet<RandomStudySession> RandomStudySessions => Set<RandomStudySession>();
+    
 }

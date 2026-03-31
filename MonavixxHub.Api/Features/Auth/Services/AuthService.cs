@@ -10,11 +10,13 @@ namespace MonavixxHub.Api.Features.Auth.Services;
 /// Provides authentication-related operations such as login and registration.
 /// </summary>
 public class AuthService(
-    TokenService tokenService,
+    JwtTokenService jwtTokenService,
     AppDbContext dbContext,
     PasswordHashService passwordHashService,
     EmailCheckService emailCheckService,
-    ILogger<AuthService> logger)
+    ILogger<AuthService> logger,
+    SessionService sessionService,
+    IHttpContextAccessor httpContextAccessor)
 {
     /// <summary>
     /// Authenticates a user with the given username or email and password.
@@ -33,11 +35,25 @@ public class AuthService(
         User? user = (emailCheckService.IsValid(usernameOrEmail)
             ? await dbContext.Users.SingleOrDefaultAsync(u => u.Email == usernameOrEmail)
             : await dbContext.Users.SingleOrDefaultAsync(u => u.Username == usernameOrEmail));
-        if (user is null)
+        if (user is null || !passwordHashService.Verify(password, user.PasswordHash))
             throw new WrongUserCredentialsException();
-        if (passwordHashService.Verify(password, user.PasswordHash))
-            return new AuthResponseDto(tokenService.GenerateToken(user), user.Username);
-        throw new WrongUserCredentialsException();
+        await sessionService.StartSessionAsync(user.Id);
+        AddJwtToCookie(user);
+        return new AuthResponseDto(user.Username);
+    }
+
+    public void AddJwtToCookie(User user)
+    {
+        var (token, expires) = jwtTokenService.GenerateToken(user);
+        httpContextAccessor.HttpContext!.Response.Cookies.Append("JwtToken", token,
+            new CookieOptions
+            {
+                HttpOnly = true,
+                SameSite = SameSiteMode.Lax,
+                Expires = expires,
+                Secure = true,
+                Path = "/"
+            });
     }
 
     /// <summary>
@@ -62,11 +78,25 @@ public class AuthService(
             Email = email,
             Username = username,
             PasswordHash = passwordHashService.Hash(password),
-            CreatedAt = DateTimeOffset.UtcNow
+            CreatedAt = DateTimeOffset.UtcNow,
         };
+        
         dbContext.Users.Add(user);
         await dbContext.SaveChangesAsync();
         logger.LogInformation("Successfully registered user {Username} with email {Email}.", username, email);
-        return new AuthResponseDto(tokenService.GenerateToken(user), user.Username);
+
+        await sessionService.StartSessionAsync(user.Id);
+        AddJwtToCookie(user);
+        return new AuthResponseDto(user.Username);
+    }
+
+    public async Task Refresh()
+    {
+        if (!httpContextAccessor.HttpContext!.Request.Cookies.TryGetValue("refreshToken", out var refreshToken))
+            throw new RefreshTokenNotFoundException();
+        var session = await sessionService.EnsureSessionIsValidAsync(refreshToken);
+        var user = await dbContext.Users.FindAsync(session.UserId);
+        if (user is null) throw new UserDoesNotExistException();
+        AddJwtToCookie(user);
     }
 }

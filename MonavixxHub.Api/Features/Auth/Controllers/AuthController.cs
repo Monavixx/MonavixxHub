@@ -50,4 +50,12 @@ public class AuthController (AuthService authService) : ControllerBase
             await authService.LoginAsync(loginDto.UsernameOrEmail, loginDto.Password);
         return Ok(response);
     }
+
+    [HttpPost("refresh")]
+    public async ValueTask<IActionResult> Refresh()
+    {
+        await authService.Refresh();
+        return NoContent();
+    }
 }
+// TODO: cookie handling to controller

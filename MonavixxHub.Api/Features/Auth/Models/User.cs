@@ -66,4 +66,5 @@ public class User
     
     [Required] public UserRole Role { get; set; } = UserRole.User;
     [Required] public bool IsBanned { get; set; } = false;
+    public ICollection<Session> Sessions { get; }
 }

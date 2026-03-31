@@ -35,7 +35,7 @@ builder.Services.AddSingleton<EmailCheckService>();
 builder.Services.AddSingleton<PasswordHashService>();
 builder.Services.AddSingleton<UniqueConstraintResolver>();
 builder.Services.AddSingleton<ForeignKeyConstraintResolver>();
-builder.Services.AddScoped<TokenService>();
+builder.Services.AddSingleton<JwtTokenService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<FlashcardsStudyService>();
 builder.Services.AddFlashcardsStudyAlgorithms();
@@ -46,6 +46,8 @@ builder.Services.AddScoped<IImageService, ImageService>();
 builder.Services.AddScoped<FlashcardService>();
 builder.Services.AddScoped<FlashcardSetService>();
 builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<RefreshTokenService>();
+builder.Services.AddScoped<SessionService>();
 builder.Services.AddScoped<FlashcardSetEntryService>();
 builder.Services.AddScoped<FlashcardAccessService>();
 builder.Services.AddScoped<ImageAccessService>();
@@ -93,7 +95,7 @@ builder.Services.AddRateLimiter(options =>
         opt.QueueLimit = rlOptions.Register.QueueLimit;
     });
 });
-
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddControllers();
 
 builder.Services.AddDbContext<AppDbContext>(optionsBuilder =>
@@ -104,6 +106,15 @@ builder.Services.AddDbContext<AppDbContext>(optionsBuilder =>
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                if (!context.Request.Headers.ContainsKey("Authorization"))
+                    context.Token = context.Request.Cookies["JwtToken"];
+                return Task.CompletedTask;
+            }
+        };
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
