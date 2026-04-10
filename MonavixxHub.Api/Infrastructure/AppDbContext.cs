@@ -19,6 +19,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Flashcard> Flashcards => Set<Flashcard>();
     public DbSet<FlashcardSetEntry> FlashcardSetEntries => Set<FlashcardSetEntry>();
     public DbSet<FlashcardSet> FlashcardSets => Set<FlashcardSet>();
+    public DbSet<FlashcardSetUser> FlashcardSetUsers => Set<FlashcardSetUser>();
     public DbSet<RandomStudySession> RandomStudySessions => Set<RandomStudySession>();
     
 }

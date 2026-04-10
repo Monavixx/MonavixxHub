@@ -6,4 +6,4 @@ namespace MonavixxHub.Api.Features.Auth.DTOs;
 /// <param name="Username">
 /// The username of the authenticated user.
 /// </param>
-public record AuthResponseDto(string Username);
+public record AuthResponseDto(UserIdType Id, string Username, string Email);

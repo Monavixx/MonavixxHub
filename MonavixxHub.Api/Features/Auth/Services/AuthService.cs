@@ -16,7 +16,8 @@ public class AuthService(
     EmailCheckService emailCheckService,
     ILogger<AuthService> logger,
     SessionService sessionService,
-    IHttpContextAccessor httpContextAccessor)
+    IHttpContextAccessor httpContextAccessor,
+    RefreshTokenService refreshTokenService)
 {
     /// <summary>
     /// Authenticates a user with the given username or email and password.
@@ -39,7 +40,7 @@ public class AuthService(
             throw new WrongUserCredentialsException();
         await sessionService.StartSessionAsync(user.Id);
         AddJwtToCookie(user);
-        return new AuthResponseDto(user.Username);
+        return new AuthResponseDto(user.Id, user.Username, user.Email);
     }
 
     public void AddJwtToCookie(User user)
@@ -87,10 +88,10 @@ public class AuthService(
 
         await sessionService.StartSessionAsync(user.Id);
         AddJwtToCookie(user);
-        return new AuthResponseDto(user.Username);
+        return new AuthResponseDto(user.Id, user.Username, user.Email);
     }
 
-    public async Task Refresh()
+    public async Task<User> Refresh()
     {
         if (!httpContextAccessor.HttpContext!.Request.Cookies.TryGetValue("refreshToken", out var refreshToken))
             throw new RefreshTokenNotFoundException();
@@ -98,5 +99,29 @@ public class AuthService(
         var user = await dbContext.Users.FindAsync(session.UserId);
         if (user is null) throw new UserDoesNotExistException();
         AddJwtToCookie(user);
+        return user;
+    }
+
+    public async Task Logout()
+    {
+        var options = new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Strict,
+            Path = "/"
+        };
+
+        httpContextAccessor.HttpContext!.Response.Cookies.Delete("JwtToken", options);
+        httpContextAccessor.HttpContext!.Response.Cookies.Delete("refreshToken", options);
+        if (!httpContextAccessor.HttpContext!.Request.Cookies.TryGetValue("refreshToken", out var refreshToken))
+            throw new RefreshTokenNotFoundException();
+        var rt = refreshTokenService.Hash(refreshToken);
+        if (await dbContext.Sessions
+                .Where(s => s.RefreshTokenHash == rt)
+                .ExecuteDeleteAsync() <= 0)
+        {
+            throw new SessionNotFoundException();
+        }
     }
 }

@@ -7,7 +7,7 @@ public record GetFlashcardSetWithEntriesDto(
     string Name,
     Guid? ParentSetId,
     bool IsPublic,
-    int OwnerId,
+    UserIdType OwnerId,
     IEnumerable<Guid> SubsetsIds,
     IEnumerable<GetFlashcardDto> Entries) : GetFlashcardSetDto(Id, Name, ParentSetId, IsPublic, OwnerId, SubsetsIds)
 {

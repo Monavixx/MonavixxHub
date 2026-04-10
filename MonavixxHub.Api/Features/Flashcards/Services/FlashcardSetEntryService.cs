@@ -43,7 +43,7 @@ public class FlashcardSetEntryService (AppDbContext dbContext, ILogger<Flashcard
         logger.LogInformation("Flashcard [{FlashcardId}] added to FlashcardSet [{FlashcardSetId}]",
             flashcardId, flashcardSetId);
     }
-    //todo: pagination, admin functionality, logs
+    //todo: admin functionality
     public async ValueTask AddFlashcardCoreAsync(Guid flashcardSetId, Guid flashcardId, int order)
     {
         logger.LogDebug("Adding Flashcard [{FlashcardId}] to FlashcardSet [{FlashcardSetId}]", 
@@ -62,5 +62,15 @@ public class FlashcardSetEntryService (AppDbContext dbContext, ILogger<Flashcard
         int maxOrder = await dbContext.FlashcardSetEntries.Where(x => x.FlashcardSetId == flashcardSetId)
             .MaxAsync(x => (int?)x.Order) ?? 0;
         await AddFlashcardCoreAsync(flashcardSetId, flashcardId, maxOrder + 1);
+    }
+
+    public IQueryable<Flashcard> GetFlashcardsInSet(Guid flashcardSetId, int page, int limit)
+    {
+        return dbContext.FlashcardSetEntries
+            .OrderBy(fse => fse.Order)
+            .Skip(page*limit)
+            .Take(limit)
+            .Where(fse => fse.FlashcardSetId == flashcardSetId)
+            .Select(fse => fse.Flashcard);
     }
 }

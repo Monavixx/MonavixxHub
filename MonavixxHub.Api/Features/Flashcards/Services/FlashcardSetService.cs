@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using MonavixxHub.Api.Features.Auth.Extensions;
+using MonavixxHub.Api.Features.Auth.Models;
 using MonavixxHub.Api.Features.Flashcards.DTOs.Request;
 using MonavixxHub.Api.Features.Flashcards.Exceptions;
 using MonavixxHub.Api.Features.Flashcards.Models;
@@ -30,9 +31,12 @@ public class FlashcardSetService (AppDbContext dbContext, ILogger<FlashcardSetSe
             Name = dto.Name,
             ParentSetId = dto.ParentSetId,
             OwnerId = owner.GetUserId(),
-            IsPublic = dto.IsPublic
+            IsPublic = dto.IsPublic,
+            Learners = { new FlashcardSetUser() {UserId = owner.GetUserId()} },
         };
+        
         dbContext.FlashcardSets.Add(flashcardSet);
+        
         await dbContext.SaveChangesAsync();
         logger.LogInformation("FlashcardSet [{FlashcardSetId}] {FlashcardSetName} created successfully",
             flashcardSet.Id, flashcardSet.Name);
@@ -63,6 +67,10 @@ public class FlashcardSetService (AppDbContext dbContext, ILogger<FlashcardSetSe
     public async Task DeleteAsync(FlashcardSet flashcardSet)
     {
         logger.LogDebug("Deleting FlashcardSet [{FlashcardSetId}]...", flashcardSet.Id);
+        await dbContext.FlashcardSets
+            .Where(f => f.ParentSetId == flashcardSet.Id)
+            .ExecuteUpdateAsync(builder => builder
+                .SetProperty(f => f.ParentSetId, flashcardSet.ParentSetId));
         dbContext.FlashcardSets.Remove(flashcardSet);
         await dbContext.SaveChangesAsync();
         logger.LogInformation("FlashcardSet [{FlashcardSetId}] deleted successfully", flashcardSet.Id);
@@ -81,6 +89,12 @@ public class FlashcardSetService (AppDbContext dbContext, ILogger<FlashcardSetSe
         logger.LogDebug("Getting FlashcardSet [{FlashcardSetId}]...", setId);
         return await dbContext.FlashcardSets.FindAsync(setId) ?? throw new FlashcardSetNotFoundException();
     }
+
+    public IQueryable<FlashcardSet> GetUsersSets(UserIdType userId)
+        => dbContext.FlashcardSets.Where(fs => fs.OwnerId == userId);
+
+    public IQueryable<FlashcardSet> GetLearningSets(UserIdType userId)
+        => dbContext.FlashcardSetUsers.Where(fsu => fsu.UserId == userId).Select(fsu => fsu.FlashcardSet);
 
     /// <summary>
     /// Ensures that the <see cref="FlashcardSet.Entries"/> collection is loaded,

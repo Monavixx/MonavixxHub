@@ -15,4 +15,5 @@ public class FlashcardSet
     [Required] public UserIdType OwnerId { get; set; }
     public User Owner { get; set; }
     public ICollection<FlashcardSet> Subsets { get; } = [];
+    public ICollection<FlashcardSetUser> Learners { get; } = [];
 }

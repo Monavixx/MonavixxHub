@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using MonavixxHub.Api.Common;
 using MonavixxHub.Api.Features.Auth.DTOs;
+using MonavixxHub.Api.Features.Auth.Extensions;
 using MonavixxHub.Api.Features.Auth.Services;
 
 namespace MonavixxHub.Api.Features.Auth.Controllers;
@@ -25,8 +27,6 @@ public class AuthController (AuthService authService) : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async ValueTask<IActionResult> Register([FromBody] RegisterDto registerDto)
     {
-        if (User.Identity?.IsAuthenticated is true)
-            return Forbid();
         var response =
             await authService.RegisterAsync(registerDto.Username, registerDto.Password, registerDto.Email);
         return Ok(response);
@@ -52,9 +52,16 @@ public class AuthController (AuthService authService) : ControllerBase
     }
 
     [HttpPost("refresh")]
-    public async ValueTask<IActionResult> Refresh()
+    public async Task<IActionResult> Refresh()
     {
-        await authService.Refresh();
+        var user = await authService.Refresh();
+        return Ok(new AuthResponseDto(user.Id, user.Username, user.Email));
+    }
+    
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout()
+    {
+        await authService.Logout();
         return NoContent();
     }
 }

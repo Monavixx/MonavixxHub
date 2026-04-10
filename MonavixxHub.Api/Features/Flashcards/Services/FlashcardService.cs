@@ -130,12 +130,14 @@ public class FlashcardService (IImageService imageService, AppDbContext dbContex
     /// </summary>
     /// <param name="user">User whose flashcards to retrieve.</param>
     /// <returns>An IQueryable collection that can be further filtered or projected.</returns>
-    public IQueryable<Flashcard> GetAll(ClaimsPrincipal user)
+    public IQueryable<Flashcard> GetAll(UserIdType userId)
     {
-        logger.LogDebug("Getting all flashcards owned by current user");
-        int userId = user.GetUserId();
+        logger.LogDebug("Getting all flashcards owned by user [{SpecifiedUserId}]...", userId);
         return dbContext.Flashcards.Where(x => x.OwnerId == userId);
     }
+
+    public IQueryable<Flashcard> GetPage(UserIdType userId, int page, int limit)
+        => GetAll(userId).Skip(page * limit).Take(limit);
 
     /// <summary>
     /// Deletes the specified flashcard entirely from the database.

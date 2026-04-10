@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using MonavixxHub.Api.Features.Auth.Extensions;
 using MonavixxHub.Api.Features.Flashcards.Authorization;
 using MonavixxHub.Api.Features.Flashcards.DTOs;
 using MonavixxHub.Api.Features.Flashcards.DTOs.Request;
@@ -18,7 +20,8 @@ namespace MonavixxHub.Api.Features.Flashcards.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/flashcard-sets")]
-public class FlashcardSetController(IAuthorizationService authorizationService, FlashcardSetService flashcardSetService) : ControllerBase
+public class FlashcardSetController(IAuthorizationService authorizationService, FlashcardSetService flashcardSetService)
+    : ControllerBase
 {
     /// <summary>
     /// Retrieves a specific flashcard set by its unique identifier.
@@ -37,15 +40,15 @@ public class FlashcardSetController(IAuthorizationService authorizationService, 
     [ProducesResponseType<IActionResult>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async ValueTask<IActionResult> Get(Guid id, 
-        [FromQuery(Name="entries")] bool? includeEntries,
-        [FromQuery(Name="ordered")] bool? ordered)
+    public async ValueTask<IActionResult> Get(Guid id,
+        [FromQuery(Name = "entries")] bool? includeEntries,
+        [FromQuery(Name = "ordered")] bool? ordered)
     {
         var flashcardSet = await flashcardSetService.GetAsync(id);
         var authorizationResult =
             await authorizationService.AuthorizeAsync(User, flashcardSet, Requirements.FlashcardSet.ReadAccess);
         if (!authorizationResult.Succeeded) return Forbid();
-        
+
         await flashcardSetService.EnsureSubsetsLoadedAsync(flashcardSet);
         if (includeEntries is true)
         {
@@ -55,6 +58,7 @@ public class FlashcardSetController(IAuthorizationService authorizationService, 
                 await flashcardSetService.EnsureEntriesLoadedWithFlashcardAsync(flashcardSet);
             return Ok(new GetFlashcardSetWithEntriesDto(flashcardSet));
         }
+
         return Ok(new GetFlashcardSetDto(flashcardSet));
     }
 
@@ -72,9 +76,10 @@ public class FlashcardSetController(IAuthorizationService authorizationService, 
     public async ValueTask<IActionResult> Create([FromBody] CreateFlashcardSetDto dto)
     {
         var flashcardSet = await flashcardSetService.CreateAsync(dto, User);
-        return CreatedAtAction(nameof(Get), 
+        return CreatedAtAction(nameof(Get),
             new { id = flashcardSet.Id }, new GetFlashcardSetDto(flashcardSet));
     }
+
     /// <summary>
     /// Updates an existing flashcard set.
     /// </summary>
@@ -98,6 +103,7 @@ public class FlashcardSetController(IAuthorizationService authorizationService, 
             return Ok(new GetFlashcardSetDto(await flashcardSetService.UpdateAsync(flashcardSet, dto)));
         return Forbid();
     }
+
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -111,4 +117,17 @@ public class FlashcardSetController(IAuthorizationService authorizationService, 
         await flashcardSetService.DeleteAsync(flashcardSet);
         return NoContent();
     }
+
+    [HttpGet("my")]
+    public IQueryable<GetFlashcardSetDto> GetUsersSets()
+        => flashcardSetService
+            .GetUsersSets(User.GetUserId())
+            .Include(s => s.Subsets)
+            .Select(GetFlashcardSetDto.Projection);
+
+    [HttpGet("learning")]
+    public IQueryable<GetFlashcardSetDto> GetLearningSets()
+        => flashcardSetService
+            .GetLearningSets(User.GetUserId())
+            .Select(GetFlashcardSetDto.Projection);
 }

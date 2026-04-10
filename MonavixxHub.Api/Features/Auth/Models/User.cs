@@ -1,6 +1,7 @@
 global using UserIdType = int;
 
 using System.ComponentModel.DataAnnotations;
+using MonavixxHub.Api.Features.Flashcards.Models;
 
 namespace MonavixxHub.Api.Features.Auth.Models;
 
@@ -66,5 +67,6 @@ public class User
     
     [Required] public UserRole Role { get; set; } = UserRole.User;
     [Required] public bool IsBanned { get; set; } = false;
-    public ICollection<Session> Sessions { get; }
+    public ICollection<Session> Sessions { get; } = [];
+    public ICollection<FlashcardSetUser> AddedFlashcardSets { get; } = [];
 }

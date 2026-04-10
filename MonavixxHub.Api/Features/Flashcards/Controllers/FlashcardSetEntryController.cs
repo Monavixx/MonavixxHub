@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using MonavixxHub.Api.Features.Flashcards.Authorization;
 using MonavixxHub.Api.Features.Flashcards.DTOs;
 using MonavixxHub.Api.Features.Flashcards.DTOs.Request;
+using MonavixxHub.Api.Features.Flashcards.DTOs.Response;
 using MonavixxHub.Api.Features.Flashcards.Services;
 
 namespace MonavixxHub.Api.Features.Flashcards.Controllers;
@@ -14,6 +15,7 @@ namespace MonavixxHub.Api.Features.Flashcards.Controllers;
 /// All endpoints require authentication. Users must have edit access to the flashcard set 
 /// and to the individual flashcards they are adding.
 /// </remarks>
+[Authorize]
 [ApiController]
 [Route("api/flashcard-sets/{flashcardSetId}/entries")]
 public class FlashcardSetEntryController
@@ -38,7 +40,7 @@ public class FlashcardSetEntryController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async ValueTask<IActionResult> AddFlashcard(Guid flashcardSetId,
+    public async Task<IActionResult> AddFlashcard(Guid flashcardSetId,
         [FromServices] FlashcardSetService flashcardSetService,
         [FromBody] AddFlashcardToSetDto dto,
         [FromServices] FlashcardService flashcardService,
@@ -58,5 +60,17 @@ public class FlashcardSetEntryController
         else
             await flashcardSetEntryService.AddFlashcardAsync(flashcardSetId, dto.FlashcardId, dto.Order.Value);
         return NoContent();
+    }
+
+    [HttpGet("page/{page:int}")]
+    public async Task<IActionResult> GetFlashcardsInSet(Guid flashcardSetId, int page,
+        [FromServices] FlashcardSetService flashcardSetService,
+        [FromServices] FlashcardSetEntryService flashcardSetEntryService,
+        [FromQuery(Name = "limit")] int limit = 15)
+    {
+        var flashcardSet = await flashcardSetService.GetAsync(flashcardSetId);
+        if (!(await authorizationService.AuthorizeAsync(User, flashcardSet, Requirements.FlashcardSet.ReadAccess))
+            .Succeeded) return Forbid();
+        return Ok(flashcardSetEntryService.GetFlashcardsInSet(flashcardSetId, page, limit).Select(GetFlashcardDto.Projection));
     }
 }

@@ -15,7 +15,7 @@ public class ImageAccessService(AppDbContext dbContext, ILogger<ImageAccessServi
         var hasAccess = await dbContext.Flashcards
             .Where(FlashcardAccessExpressions.CanRead(userId))
             .AnyAsync(flashcard => flashcard.ImageId == imageId);
-        logger.LogDebug("Edit access to image ({ImageId}) is {Access}",
+        logger.LogDebug("Read access to image ({ImageId}) is {Access}",
             imageId, hasAccess ? "allowed" : "denied");
         return hasAccess;
     }

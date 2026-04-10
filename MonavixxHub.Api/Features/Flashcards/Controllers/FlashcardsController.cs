@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MonavixxHub.Api.Features.Auth.Extensions;
 using MonavixxHub.Api.Features.Flashcards.Authorization;
-using MonavixxHub.Api.Features.Flashcards.DTOs;
 using MonavixxHub.Api.Features.Flashcards.DTOs.Request;
 using MonavixxHub.Api.Features.Flashcards.DTOs.Response;
 using MonavixxHub.Api.Features.Flashcards.Models;
@@ -32,17 +32,14 @@ public class FlashcardsController(FlashcardService flashcardService) : Controlle
     [ProducesResponseType<IEnumerable<GetFlashcardDto>>(StatusCodes.Status200OK)]
     public IActionResult GetUsersFlashcards()
     {
-        return Ok(flashcardService.GetAll(User)
-            .Select(flashcard => new GetFlashcardDto
-            (
-                Front: flashcard.Front,
-                Back: flashcard.Back,
-                Transcription: flashcard.Transcription,
-                ImageId: flashcard.ImageId,
-                CreatedAt: flashcard.CreatedAt,
-                UpdatedAt: flashcard.UpdatedAt,
-                Id: flashcard.Id
-            )));
+        return Ok(flashcardService.GetAll(User.GetUserId())
+            .Select(GetFlashcardDto.Projection));
+    }
+
+    [HttpGet("my/page/{page:int}")]
+    public IActionResult GetPageUsersFlashcard(int page, [FromQuery] int limit = 10)
+    {
+        return Ok(flashcardService.GetPage(User.GetUserId(), page, limit));
     }
     /// <summary>
     /// Retrieves a specific flashcard by ID if the user has read access.
@@ -86,7 +83,6 @@ public class FlashcardsController(FlashcardService flashcardService) : Controlle
         
         return CreatedAtAction(nameof(Get), new { id = flashcard.Id }, GetFlashcardDto.FromFlashcard(flashcard));
     }
-    //todo: delete user (take into account images' reference count
     /// <summary>
     /// Partially updates a flashcard if the current user has edit access.
     /// </summary>
