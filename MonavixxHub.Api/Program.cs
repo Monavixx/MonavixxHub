@@ -1,5 +1,7 @@
 using System.Text;
 using FluentValidation;
+using Hangfire;
+using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
@@ -11,6 +13,8 @@ using MonavixxHub.Api.Common.Exceptions;
 using MonavixxHub.Api.Common.Exceptions.Resolvers;
 using MonavixxHub.Api.Common.Options;
 using MonavixxHub.Api.Common.Options.RateLimiting;
+using MonavixxHub.Api.Common.Services;
+using MonavixxHub.Api.Features.Auth.Authorization;
 using MonavixxHub.Api.Features.Auth.Middlewares;
 using MonavixxHub.Api.Features.Auth.Services;
 using MonavixxHub.Api.Features.Flashcards.Authorization;
@@ -41,11 +45,14 @@ builder.Services.AddScoped<FlashcardsStudyService>();
 builder.Services.AddFlashcardsStudyAlgorithms();
 builder.Services.AddOpenApi();
 builder.Services.Configure<StorageOptions>(builder.Configuration.GetSection(StorageOptions.Name));
+builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.Name));
 builder.Services.Configure<RateLimitingOptions>(builder.Configuration.GetSection(RateLimitingOptions.Name));
 builder.Services.AddScoped<IImageService, ImageService>();
 builder.Services.AddScoped<FlashcardService>();
 builder.Services.AddScoped<FlashcardSetService>();
 builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<EmailService>();
+builder.Services.AddScoped<CurrentUserService>();
 builder.Services.AddScoped<RefreshTokenService>();
 builder.Services.AddScoped<SessionService>();
 builder.Services.AddScoped<FlashcardSetEntryService>();
@@ -54,7 +61,9 @@ builder.Services.AddScoped<ImageAccessService>();
 builder.Services.AddSingleton<IAuthorizationHandler, FlashcardSetAuthorizationHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, FlashcardAuthorizationHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, ImageAuthorizationHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, EmailConfirmationHandler>();
 builder.Services.AddSingleton<IAuthorizationHandler, GlobalAuthorizationHandler>();
+builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, CustomAuthorizationMiddlewareResultHandler>();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.AddFluentValidationAutoValidation();
@@ -77,6 +86,16 @@ builder.Host.UseSerilog((context, configuration) =>
             rollingInterval: RollingInterval.Day,
             restrictedToMinimumLevel: LogEventLevel.Verbose)
 );
+
+builder.Services.AddHangfire(config => config
+    .UsePostgreSqlStorage(p =>
+    {
+        p.UseNpgsqlConnection(builder.Configuration.GetConnectionString("DefaultConnection"));
+    }));
+builder.Services.AddHangfireServer(options =>
+{
+    options.WorkerCount = 2;
+});
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -126,7 +145,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)),
         };
     });
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(Policies.EmailConfirmed, policy => policy
+        .RequireAuthenticatedUser()
+        .AddRequirements(EmailConfirmationRequirement.Default)
+    );
 
 var app = builder.Build();
 app.UseSerilogRequestLogging();

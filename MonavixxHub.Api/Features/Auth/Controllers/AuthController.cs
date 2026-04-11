@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using MonavixxHub.Api.Common;
 using MonavixxHub.Api.Features.Auth.DTOs;
+using MonavixxHub.Api.Features.Auth.Exceptions;
 using MonavixxHub.Api.Features.Auth.Extensions;
 using MonavixxHub.Api.Features.Auth.Services;
 
@@ -25,11 +26,60 @@ public class AuthController (AuthService authService) : ControllerBase
     [ProducesResponseType<AuthResponseDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async ValueTask<IActionResult> Register([FromBody] RegisterDto registerDto)
+    public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
     {
         var response =
             await authService.RegisterAsync(registerDto.Username, registerDto.Password, registerDto.Email);
         return Ok(response);
+    }
+
+    [HttpGet("confirm-email")]
+    public async Task<IActionResult> ConfirmEmail([FromQuery] string token)
+    {
+        try
+        {
+            await authService.ConfirmEmailAsync(token);
+            return Content(
+                """
+                <html>
+                <body>
+                    <h1>Email confirmed!</h1>
+                    <p>You can now close this page.</p>
+                </body>
+                </html>
+                """, "text/html");
+        }
+        catch (InvalidEmailConfirmationTokenException)
+        {
+            return Content(
+                """
+                <html>
+                <body>
+                    <h1>Invalid or expired token</h1>
+                    <p>Please request a new confirmation email.</p>
+                </body>
+                </html>
+                """, "text/html");
+        }
+        catch (Exception e)
+        {
+            return Content(
+                $"""
+                <html>
+                <body>
+                    <h1>Internal server error {e.Message}</h1>
+                </body>
+                </html>
+                """, "text/html");
+        }
+    }
+
+    [Authorize] //todo: policy isemailconfirmation false
+    [HttpPost("new-email-confirmation-token")]
+    public async Task<IActionResult> NewEmailConfirmationToken()
+    {
+        await authService.NewEmailConfirmationTokenAsync(User);
+        return NoContent();
     }
 
     /// <summary>
@@ -44,7 +94,7 @@ public class AuthController (AuthService authService) : ControllerBase
     [ProducesResponseType<AuthResponseDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async ValueTask<IActionResult> Login([FromBody] LoginDto loginDto)
+    public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
     {
         var response =
             await authService.LoginAsync(loginDto.UsernameOrEmail, loginDto.Password);

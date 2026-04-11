@@ -1,6 +1,11 @@
+using System.Security.Claims;
+using System.Security.Cryptography;
+using Hangfire;
 using Microsoft.EntityFrameworkCore;
+using MonavixxHub.Api.Common.Services;
 using MonavixxHub.Api.Features.Auth.DTOs;
 using MonavixxHub.Api.Features.Auth.Exceptions;
+using MonavixxHub.Api.Features.Auth.Extensions;
 using MonavixxHub.Api.Features.Auth.Models;
 using MonavixxHub.Api.Infrastructure;
 
@@ -74,21 +79,64 @@ public class AuthService(
     {
         logger.LogInformation("Registration attempt for user '{Username}' with email '{Email}'.", username, email);
 
+        var tokenBytes = GenerateConfirmationToken();
+        var token = Convert.ToBase64String(tokenBytes);
         User user = new User()
         {
             Email = email,
             Username = username,
             PasswordHash = passwordHashService.Hash(password),
             CreatedAt = DateTimeOffset.UtcNow,
+            IsEmailConfirmed = false,
+            EmailConfirmationToken = tokenBytes,
+            EmailConfirmationTokenExpiresAt = DateTimeOffset.UtcNow.AddMinutes(15)
         };
-        
         dbContext.Users.Add(user);
         await dbContext.SaveChangesAsync();
         logger.LogInformation("Successfully registered user {Username} with email {Email}.", username, email);
 
+        BackgroundJob.Enqueue<EmailService>(e => e.SendConfirmationAsync(email, token));
+
         await sessionService.StartSessionAsync(user.Id);
         AddJwtToCookie(user);
         return new AuthResponseDto(user.Id, user.Username, user.Email);
+    }
+    private static byte[] GenerateConfirmationToken() 
+        => RandomNumberGenerator.GetBytes(32);
+
+    public async Task ConfirmEmailAsync(string token)
+    {
+        byte[] tokenBytes = Convert.FromBase64String(token);
+        var now = DateTimeOffset.UtcNow;
+        int updatedRows = await dbContext.Users
+            .Where(u => u.EmailConfirmationToken == tokenBytes
+                        && u.EmailConfirmationTokenExpiresAt > now)
+            .ExecuteUpdateAsync(builder =>
+            {
+                builder.SetProperty(u => u.IsEmailConfirmed, true);
+                builder.SetProperty(u => u.EmailConfirmationToken, (byte[]?)null);
+                builder.SetProperty(u => u.EmailConfirmationTokenExpiresAt, (DateTimeOffset?)null);
+            });
+        if (updatedRows <= 0)
+            throw new InvalidEmailConfirmationTokenException();
+    }
+
+    public async Task NewEmailConfirmationTokenAsync(ClaimsPrincipal user)
+    {
+        var email = user.GetEmail();
+        var id = user.GetUserId();
+        var expires = DateTimeOffset.UtcNow.AddMinutes(15);
+        var tokenBytes = GenerateConfirmationToken();
+        var token = Convert.ToBase64String(tokenBytes);
+        await dbContext.Users
+            .Where(u => u.Id == id)
+            .ExecuteUpdateAsync(builder =>
+            {
+                builder.SetProperty(u => u.IsEmailConfirmed, false);
+                builder.SetProperty(u => u.EmailConfirmationToken, tokenBytes);
+                builder.SetProperty(u => u.EmailConfirmationTokenExpiresAt, expires);
+            });
+        BackgroundJob.Enqueue<EmailService>(e => e.SendConfirmationAsync(email, token));
     }
 
     public async Task<User> Refresh()

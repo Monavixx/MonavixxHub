@@ -22,6 +22,9 @@ public class RegisterDtoValidator: AbstractValidator<RegisterDto>
         RuleFor(r => r.Email)
             .Must(emailCheckService.IsValid)
             .WithMessage("Email address is not valid");
+        RuleFor(r => r.Username)
+            .Must(username => !emailCheckService.IsValid(username))
+            .WithMessage("Username cannot be an email address");
         RuleFor(reg => reg.Password)
             .Must(s => s.Any(char.IsDigit))
             .WithMessage("Password must contain at least 1 digit")

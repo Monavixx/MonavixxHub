@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using MonavixxHub.Api.Features.Auth.Extensions;
-using MonavixxHub.Api.Features.Auth.Models;
 using MonavixxHub.Api.Features.Flashcards.DTOs.Request;
 using MonavixxHub.Api.Features.Flashcards.Exceptions;
 using MonavixxHub.Api.Features.Flashcards.Models;

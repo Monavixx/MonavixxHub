@@ -21,7 +21,7 @@ public class FlashcardSetEntryService (AppDbContext dbContext, ILogger<Flashcard
     /// </exception>
     public async Task AddFlashcardAsync(Guid flashcardSetId, Guid flashcardId, int order)
     {
-        await AddFlashcardCoreAsync(flashcardSetId, flashcardId, order);
+        AddFlashcardCoreAsync(flashcardSetId, flashcardId, order);
         
         await dbContext.SaveChangesAsync();
         logger.LogInformation("Flashcard [{FlashcardId}] added to FlashcardSet [{FlashcardSetId}] with order [{Order}]",
@@ -44,7 +44,7 @@ public class FlashcardSetEntryService (AppDbContext dbContext, ILogger<Flashcard
             flashcardId, flashcardSetId);
     }
     //todo: admin functionality
-    public async ValueTask AddFlashcardCoreAsync(Guid flashcardSetId, Guid flashcardId, int order)
+    public void AddFlashcardCoreAsync(Guid flashcardSetId, Guid flashcardId, int order)
     {
         logger.LogDebug("Adding Flashcard [{FlashcardId}] to FlashcardSet [{FlashcardSetId}]", 
             flashcardId, flashcardSetId);
@@ -61,7 +61,7 @@ public class FlashcardSetEntryService (AppDbContext dbContext, ILogger<Flashcard
     {
         int maxOrder = await dbContext.FlashcardSetEntries.Where(x => x.FlashcardSetId == flashcardSetId)
             .MaxAsync(x => (int?)x.Order) ?? 0;
-        await AddFlashcardCoreAsync(flashcardSetId, flashcardId, maxOrder + 1);
+        AddFlashcardCoreAsync(flashcardSetId, flashcardId, maxOrder + 1);
     }
 
     public IQueryable<Flashcard> GetFlashcardsInSet(Guid flashcardSetId, int page, int limit)

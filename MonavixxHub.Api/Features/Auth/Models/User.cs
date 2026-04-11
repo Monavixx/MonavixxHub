@@ -67,6 +67,11 @@ public class User
     
     [Required] public UserRole Role { get; set; } = UserRole.User;
     [Required] public bool IsBanned { get; set; } = false;
+    
+    [Required] public bool IsEmailConfirmed { get; set; } = false;
+    public byte[]? EmailConfirmationToken { get; set; }
+    public DateTimeOffset? EmailConfirmationTokenExpiresAt { get; set; }
+    
     public ICollection<Session> Sessions { get; } = [];
     public ICollection<FlashcardSetUser> AddedFlashcardSets { get; } = [];
 }

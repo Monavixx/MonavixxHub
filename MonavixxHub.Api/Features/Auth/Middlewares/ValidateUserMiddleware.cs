@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using MonavixxHub.Api.Common;
 using MonavixxHub.Api.Features.Auth.Extensions;
 using MonavixxHub.Api.Infrastructure;
 
@@ -64,7 +65,9 @@ public class ValidateUserMiddleware(RequestDelegate next, ILogger<ValidateUserMi
                 return;
             }
             var role = Enum.GetName(user.Role)!;
-            context.User.AddIdentity(new ClaimsIdentity([new Claim(ClaimTypes.Role, role)]));
+            context.User.AddIdentity(new ClaimsIdentity([
+                new Claim(ClaimTypes.Role, role)
+            ]));
             logger.LogInformation("User validated successfully [Role: {Role}]", role);
             await next(context);
             return;

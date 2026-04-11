@@ -1,14 +1,15 @@
+using MonavixxHub.Api.Features.Auth.Exceptions;
+using MonavixxHub.Api.Features.Auth.Extensions;
+using MonavixxHub.Api.Features.Auth.Models;
 using MonavixxHub.Api.Infrastructure;
 
 namespace MonavixxHub.Api.Features.Auth.Services;
 
 
-// todo: when I'll need to retrieve User entity, write this class and ProvideUserEntityAttribute and in middleware make decisions
-public class CurrentUserService
+public class CurrentUserService(IHttpContextAccessor httpContextAccessor, AppDbContext dbContext)
 {
-    
-    public CurrentUserService(IHttpContextAccessor httpContextAccessor, AppDbContext dbContext)
-    {
-        
-    }
+    private User? _user;
+    public async ValueTask<User> GetUserAsync() 
+        => _user ??= await dbContext.Users.FindAsync(httpContextAccessor.HttpContext!.User.GetUserId())
+        ?? throw new UserDoesNotExistException();
 }

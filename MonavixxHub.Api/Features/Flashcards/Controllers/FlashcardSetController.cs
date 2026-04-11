@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using MonavixxHub.Api.Common;
 using MonavixxHub.Api.Features.Auth.Extensions;
 using MonavixxHub.Api.Features.Flashcards.Authorization;
 using MonavixxHub.Api.Features.Flashcards.DTOs;
@@ -17,7 +18,7 @@ namespace MonavixxHub.Api.Features.Flashcards.Controllers;
 /// All endpoints require authentication (<see cref="AuthorizeAttribute"/>). 
 /// Authorization is also applied per endpoint to determine if the user can read or edit a specific flashcard set.
 /// </remarks>
-[Authorize]
+[Authorize(Policy = Policies.EmailConfirmed)]
 [ApiController]
 [Route("api/flashcard-sets")]
 public class FlashcardSetController(IAuthorizationService authorizationService, FlashcardSetService flashcardSetService)
