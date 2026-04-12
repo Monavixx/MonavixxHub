@@ -8,9 +8,9 @@ using MonavixxHub.Api.Infrastructure;
 namespace MonavixxHub.Api.Features.Auth.Services;
 
 public class SessionService(
-    RefreshTokenService refreshTokenService,
+    IRefreshTokenService refreshTokenService,
     AppDbContext dbContext,
-    IHttpContextAccessor httpContextAccessor)
+    IHttpContextAccessor httpContextAccessor) : ISessionService
 {
     public async Task<Session> StartSessionAsync(UserIdType userId)
     {

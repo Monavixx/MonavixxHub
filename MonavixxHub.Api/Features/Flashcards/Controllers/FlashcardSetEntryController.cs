@@ -41,10 +41,10 @@ public class FlashcardSetEntryController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> AddFlashcard(Guid flashcardSetId,
-        [FromServices] FlashcardSetService flashcardSetService,
+        [FromServices] IFlashcardSetService flashcardSetService,
         [FromBody] AddFlashcardToSetDto dto,
-        [FromServices] FlashcardService flashcardService,
-        [FromServices] FlashcardSetEntryService flashcardSetEntryService)
+        [FromServices] IFlashcardService flashcardService,
+        [FromServices] IFlashcardSetEntryService flashcardSetEntryService)
     {
         var flashcardSet = await flashcardSetService.GetAsync(flashcardSetId);
         var authorizationResult = 
@@ -64,8 +64,8 @@ public class FlashcardSetEntryController
 
     [HttpGet("page/{page:int}")]
     public async Task<IActionResult> GetFlashcardsInSet(Guid flashcardSetId, int page,
-        [FromServices] FlashcardSetService flashcardSetService,
-        [FromServices] FlashcardSetEntryService flashcardSetEntryService,
+        [FromServices] IFlashcardSetService flashcardSetService,
+        [FromServices] IFlashcardSetEntryService flashcardSetEntryService,
         [FromQuery(Name = "limit")] int limit = 15)
     {
         var flashcardSet = await flashcardSetService.GetAsync(flashcardSetId);

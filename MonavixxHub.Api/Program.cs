@@ -35,12 +35,12 @@ Console.OutputEncoding = Encoding.UTF8;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddSingleton<EmailCheckService>();
-builder.Services.AddSingleton<PasswordHashService>();
+builder.Services.AddSingleton<IEmailCheckService, EmailCheckService>();
+builder.Services.AddSingleton<IPasswordHashService, PasswordHashService>();
 builder.Services.AddSingleton<UniqueConstraintResolver>();
 builder.Services.AddSingleton<ForeignKeyConstraintResolver>();
-builder.Services.AddSingleton<JwtTokenService>();
-builder.Services.AddScoped<AuthService>();
+builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<FlashcardsStudyService>();
 builder.Services.AddFlashcardsStudyAlgorithms();
 builder.Services.AddOpenApi();
@@ -48,16 +48,16 @@ builder.Services.Configure<StorageOptions>(builder.Configuration.GetSection(Stor
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.Name));
 builder.Services.Configure<RateLimitingOptions>(builder.Configuration.GetSection(RateLimitingOptions.Name));
 builder.Services.AddScoped<IImageService, ImageService>();
-builder.Services.AddScoped<FlashcardService>();
-builder.Services.AddScoped<FlashcardSetService>();
-builder.Services.AddScoped<UserService>();
-builder.Services.AddScoped<EmailService>();
-builder.Services.AddScoped<CurrentUserService>();
-builder.Services.AddScoped<RefreshTokenService>();
-builder.Services.AddScoped<SessionService>();
-builder.Services.AddScoped<FlashcardSetEntryService>();
-builder.Services.AddScoped<FlashcardAccessService>();
-builder.Services.AddScoped<ImageAccessService>();
+builder.Services.AddScoped<IFlashcardService, FlashcardService>();
+builder.Services.AddScoped<IFlashcardSetService, FlashcardSetService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+builder.Services.AddScoped<ISessionService, SessionService>();
+builder.Services.AddScoped<IFlashcardSetEntryService, FlashcardSetEntryService>();
+builder.Services.AddScoped<IFlashcardAccessService, FlashcardAccessService>();
+builder.Services.AddScoped<IImageAccessService, ImageAccessService>();
 builder.Services.AddSingleton<IAuthorizationHandler, FlashcardSetAuthorizationHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, FlashcardAuthorizationHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, ImageAuthorizationHandler>();
@@ -90,7 +90,7 @@ builder.Host.UseSerilog((context, configuration) =>
 builder.Services.AddHangfire(config => config
     .UsePostgreSqlStorage(p =>
     {
-        p.UseNpgsqlConnection(builder.Configuration.GetConnectionString("DefaultConnection"));
+        p.UseNpgsqlConnection(builder.Configuration.GetConnectionString("HangfireConnection"));
     }));
 builder.Services.AddHangfireServer(options =>
 {

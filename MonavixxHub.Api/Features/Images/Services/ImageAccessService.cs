@@ -6,7 +6,7 @@ using MonavixxHub.Api.Infrastructure;
 
 namespace MonavixxHub.Api.Features.Images.Services;
 
-public class ImageAccessService(AppDbContext dbContext, ILogger<ImageAccessService> logger)
+public class ImageAccessService(AppDbContext dbContext, ILogger<ImageAccessService> logger) : IImageAccessService
 {
     public async ValueTask<bool> CanRead(Guid imageId, ClaimsPrincipal user)
     {

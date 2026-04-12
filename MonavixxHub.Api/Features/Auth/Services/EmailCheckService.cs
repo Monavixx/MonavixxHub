@@ -5,7 +5,7 @@ namespace MonavixxHub.Api.Features.Auth.Services;
 /// <summary>
 /// Validates whether a string is a valid email address.
 /// </summary>
-public partial class EmailCheckService
+public partial class EmailCheckService : IEmailCheckService
 {
     private static readonly Regex EmailRegex = MyRegex();
     /// <summary>

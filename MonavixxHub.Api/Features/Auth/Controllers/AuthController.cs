@@ -14,7 +14,7 @@ namespace MonavixxHub.Api.Features.Auth.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/auth")]
-public class AuthController (AuthService authService) : ControllerBase
+public class AuthController (IAuthService authService) : ControllerBase
 {
     /// <summary>
     /// Registers a new user and returns a new jwt token.

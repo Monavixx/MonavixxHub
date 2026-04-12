@@ -10,7 +10,7 @@ namespace MonavixxHub.Api.Features.Flashcards.Services;
 /// Provides methods to check whether a specific user has access to a flashcard in the database.
 /// Uses <see cref="FlashcardAccessExpressions"/>.
 /// </summary>
-public class FlashcardAccessService (AppDbContext dbContext, ILogger<FlashcardAccessService> logger)
+public class FlashcardAccessService (AppDbContext dbContext, ILogger<FlashcardAccessService> logger) : IFlashcardAccessService
 {
     /// <summary>
     /// Determines whether the specified user has read access to the given flashcard.

@@ -20,7 +20,7 @@ namespace MonavixxHub.Api.Features.Flashcards.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/flashcards")]
-public class FlashcardsController(FlashcardService flashcardService) : ControllerBase
+public class FlashcardsController(IFlashcardService flashcardService) : ControllerBase
 {
     /// <summary>
     /// Retrieves all flashcards that the current user owns.
@@ -71,9 +71,9 @@ public class FlashcardsController(FlashcardService flashcardService) : Controlle
     [HttpPost]
     [ProducesResponseType<GetFlashcardDto>(StatusCodes.Status201Created)]
     public async ValueTask<IActionResult> Create([FromForm] CreateFlashcardDto dto, [FromServices]
-        FlashcardSetEntryService flashcardSetEntryService,
+        IFlashcardSetEntryService flashcardSetEntryService,
         [FromServices]IAuthorizationService authorizationService,
-        [FromServices] FlashcardSetService flashcardSetService)
+        [FromServices] IFlashcardSetService flashcardSetService)
     {
         if (dto.FlashcardSetId is { } fsi &&
             !(await authorizationService.AuthorizeAsync(User, await flashcardSetService.GetAsync(fsi),

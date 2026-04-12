@@ -7,8 +7,8 @@ namespace MonavixxHub.Api.Features.FlashcardsStudy.Algorithms;
 
 [ApiFlashcardStudyAlgorithm(FlashcardStudyAlgorithm.Random)]
 public class RandomFlashcardStudyAlgorithm (AppDbContext dbContext,
-    FlashcardSetService flashcardSetService,
-    FlashcardService flashcardService) : IFlashcardStudyAlgorithm
+    IFlashcardSetService flashcardSetService,
+    IFlashcardService flashcardService) : IFlashcardStudyAlgorithm
 {
     public async Task<Flashcard> NextAsync(ClaimsPrincipal User, FlashcardSet flashcardSet)
     {

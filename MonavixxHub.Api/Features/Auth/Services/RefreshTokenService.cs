@@ -4,7 +4,7 @@ using MonavixxHub.Api.Features.Auth.Models;
 
 namespace MonavixxHub.Api.Features.Auth.Services;
 
-public class RefreshTokenService(IConfiguration configuration)
+public class RefreshTokenService(IConfiguration configuration) : IRefreshTokenService
 {
     public byte[] NewRefreshToken => RandomNumberGenerator.GetBytes(64);
     public DateTimeOffset Expiry => DateTimeOffset.UtcNow + Session.Expiration;

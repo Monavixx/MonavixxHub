@@ -9,7 +9,7 @@ namespace MonavixxHub.Api.Features.Auth.Services;
 /// <summary>
 /// Provides functionality to generate authentication tokens for users.
 /// </summary>
-public class JwtTokenService
+public class JwtTokenService : IJwtTokenService
 {
     /// <summary>
     /// Generates a JWT for the specified user.

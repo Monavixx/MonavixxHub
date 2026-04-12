@@ -17,7 +17,7 @@ namespace MonavixxHub.Api.Features.Auth.DTOs.Validation;
 public class RegisterDtoValidator: AbstractValidator<RegisterDto>
 {
     /// <inheritdoc />
-    public RegisterDtoValidator(EmailCheckService emailCheckService)
+    public RegisterDtoValidator(IEmailCheckService emailCheckService)
     {
         RuleFor(r => r.Email)
             .Must(emailCheckService.IsValid)

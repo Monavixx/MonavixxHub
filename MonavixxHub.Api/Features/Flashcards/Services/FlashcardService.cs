@@ -16,7 +16,7 @@ namespace MonavixxHub.Api.Features.Flashcards.Services;
 /// Each flashcard belongs to a specific user and can optionally contain an image.
 /// </summary>
 public class FlashcardService (IImageService imageService, AppDbContext dbContext, ILogger<FlashcardService> logger,
-    FlashcardSetEntryService flashcardSetEntryService)
+    IFlashcardSetEntryService flashcardSetEntryService) : IFlashcardService
 {
     /// <summary>
     /// Creates a new flashcard for the specified user.

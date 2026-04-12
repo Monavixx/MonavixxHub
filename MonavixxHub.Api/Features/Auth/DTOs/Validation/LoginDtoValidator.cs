@@ -11,7 +11,7 @@ namespace MonavixxHub.Api.Features.Auth.DTOs.Validation;
 public class LoginDtoValidator : AbstractValidator<LoginDto>
 {
     /// <inheritdoc />
-    public LoginDtoValidator(EmailCheckService emailCheckService)
+    public LoginDtoValidator(IEmailCheckService emailCheckService)
     {
         RuleFor(d => d.UsernameOrEmail)
             .MinimumLength(User.UsernameMinLength)

@@ -24,6 +24,9 @@ public class ValidateUserMiddleware(RequestDelegate next, ILogger<ValidateUserMi
     ///
     public async Task InvokeAsync(HttpContext context, AppDbContext dbContext)
     {
+        var hasAuthorize = context.GetEndpoint()?.Metadata
+            .OfType<AuthorizeAttribute>()
+            .Any() ?? false;
         if (context.User.Identity?.IsAuthenticated == true)
         {
             var userId = context.User.GetUserId();
@@ -36,9 +39,6 @@ public class ValidateUserMiddleware(RequestDelegate next, ILogger<ValidateUserMi
                 ["Email"] = email,
             });
             
-            var hasAuthorize = context.GetEndpoint()?.Metadata
-                .OfType<AuthorizeAttribute>()
-                .Any() ?? false;
             if (!hasAuthorize)
             {
                 logger.LogDebug("Skipping user validation. Endpoint does not require authorization.");
@@ -74,6 +74,12 @@ public class ValidateUserMiddleware(RequestDelegate next, ILogger<ValidateUserMi
         }
         
         logger.LogDebug("Request is not authenticated.");
+        if (hasAuthorize)
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return;
+        }
+        
         await next(context);
     }
 }

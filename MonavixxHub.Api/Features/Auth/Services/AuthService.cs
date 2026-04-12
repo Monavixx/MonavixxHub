@@ -15,14 +15,14 @@ namespace MonavixxHub.Api.Features.Auth.Services;
 /// Provides authentication-related operations such as login and registration.
 /// </summary>
 public class AuthService(
-    JwtTokenService jwtTokenService,
+    IJwtTokenService jwtTokenService,
     AppDbContext dbContext,
-    PasswordHashService passwordHashService,
-    EmailCheckService emailCheckService,
+    IPasswordHashService passwordHashService,
+    IEmailCheckService emailCheckService,
     ILogger<AuthService> logger,
-    SessionService sessionService,
+    ISessionService sessionService,
     IHttpContextAccessor httpContextAccessor,
-    RefreshTokenService refreshTokenService)
+    IRefreshTokenService refreshTokenService) : IAuthService
 {
     /// <summary>
     /// Authenticates a user with the given username or email and password.

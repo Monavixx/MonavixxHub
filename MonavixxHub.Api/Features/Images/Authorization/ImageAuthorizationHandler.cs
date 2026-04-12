@@ -6,7 +6,7 @@ using MonavixxHub.Api.Features.Images.Services;
 
 namespace MonavixxHub.Api.Features.Images.Authorization;
 
-public class ImageAuthorizationHandler (ImageAccessService imageAccessService)
+public class ImageAuthorizationHandler (IImageAccessService imageAccessService)
     : AuthorizationHandler<ImageReadAccessRequirement, Image>
 {
     protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, ImageReadAccessRequirement requirement,

@@ -8,7 +8,7 @@ namespace MonavixxHub.Api.Features.Flashcards.Services;
 /// <summary>
 /// Handles flashcard sets' entries' creation, retrieval, updating, deletion
 /// </summary>
-public class FlashcardSetEntryService (AppDbContext dbContext, ILogger<FlashcardSetEntryService> logger)
+public class FlashcardSetEntryService (AppDbContext dbContext, ILogger<FlashcardSetEntryService> logger) : IFlashcardSetEntryService
 {
     /// <summary>
     /// Adds the specified flashcard to the specified flashcard set at the given position.

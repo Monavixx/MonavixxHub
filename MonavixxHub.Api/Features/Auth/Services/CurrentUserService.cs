@@ -6,7 +6,7 @@ using MonavixxHub.Api.Infrastructure;
 namespace MonavixxHub.Api.Features.Auth.Services;
 
 
-public class CurrentUserService(IHttpContextAccessor httpContextAccessor, AppDbContext dbContext)
+public class CurrentUserService(IHttpContextAccessor httpContextAccessor, AppDbContext dbContext) : ICurrentUserService
 {
     private User? _user;
     public async ValueTask<User> GetUserAsync() 

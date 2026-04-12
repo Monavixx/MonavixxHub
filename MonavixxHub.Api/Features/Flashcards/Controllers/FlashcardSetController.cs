@@ -21,7 +21,7 @@ namespace MonavixxHub.Api.Features.Flashcards.Controllers;
 [Authorize(Policy = Policies.EmailConfirmed)]
 [ApiController]
 [Route("api/flashcard-sets")]
-public class FlashcardSetController(IAuthorizationService authorizationService, FlashcardSetService flashcardSetService)
+public class FlashcardSetController(IAuthorizationService authorizationService, IFlashcardSetService flashcardSetService)
     : ControllerBase
 {
     /// <summary>

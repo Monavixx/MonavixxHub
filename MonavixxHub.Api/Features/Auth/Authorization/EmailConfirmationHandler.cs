@@ -3,7 +3,7 @@ using MonavixxHub.Api.Features.Auth.Services;
 
 namespace MonavixxHub.Api.Features.Auth.Authorization;
 
-public class EmailConfirmationHandler (CurrentUserService currentUserService)
+public class EmailConfirmationHandler (ICurrentUserService currentUserService)
     : AuthorizationHandler<EmailConfirmationRequirement>
 {
     protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context,

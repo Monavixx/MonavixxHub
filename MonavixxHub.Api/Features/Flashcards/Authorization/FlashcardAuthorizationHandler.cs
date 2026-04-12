@@ -14,7 +14,7 @@ namespace MonavixxHub.Api.Features.Flashcards.Authorization;
 /// Uses <see cref="FlashcardAccessService"/> to determine whether the
 /// current user has read or edit access to a specific flashcard.
 /// </remarks>
-public class FlashcardAuthorizationHandler (FlashcardAccessService flashcardAccessService)
+public class FlashcardAuthorizationHandler (IFlashcardAccessService flashcardAccessService)
     : AuthorizationHandler<FlashcardAccessRequirement, Flashcard>
 {
     /// <summary>

@@ -11,7 +11,7 @@ namespace MonavixxHub.Api.Features.Flashcards.Services;
 /// <summary>
 /// Handles FlashcardSet creation, retrieval, modification and deletion.
 /// </summary>
-public class FlashcardSetService (AppDbContext dbContext, ILogger<FlashcardSetService> logger)
+public class FlashcardSetService (AppDbContext dbContext, ILogger<FlashcardSetService> logger) : IFlashcardSetService
 {
     /// <summary>
     /// Creates a new flashcard set owned by the specified user.

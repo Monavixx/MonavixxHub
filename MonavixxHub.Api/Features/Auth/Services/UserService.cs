@@ -5,7 +5,7 @@ using MonavixxHub.Api.Infrastructure;
 
 namespace MonavixxHub.Api.Features.Auth.Services;
 
-public class UserService (AppDbContext dbContext)
+public class UserService (AppDbContext dbContext) : IUserService
 {
     public IQueryable<User> GetAllUsers()
     {

@@ -6,7 +6,7 @@ namespace MonavixxHub.Api.Features.Auth.Services;
 /// <summary>
 /// Provides hashing and verification of user passwords.
 /// </summary>
-public class PasswordHashService
+public class PasswordHashService : IPasswordHashService
 {
     private const int SaltSize = 16;
     private const int HashSize = 32;

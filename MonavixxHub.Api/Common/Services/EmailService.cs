@@ -6,7 +6,7 @@ using MonavixxHub.Api.Common.Options;
 
 namespace MonavixxHub.Api.Common.Services;
 
-public class EmailService (IOptions<EmailOptions> options)
+public class EmailService (IOptions<EmailOptions> options) : IEmailService
 {
     private readonly EmailOptions _options = options.Value;
     public async Task SendConfirmationAsync(string email, string token)

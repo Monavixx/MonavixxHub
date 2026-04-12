@@ -16,7 +16,7 @@ public class AdminController : ControllerBase
 {
     [HttpGet("users")]
     public IActionResult GetUsers(
-        [FromServices] UserService userService,
+        [FromServices] IUserService userService,
         [FromQuery(Name = "page")] int page = 0,
         [FromQuery(Name = "limit")] int limit = 50)
     {
@@ -24,14 +24,14 @@ public class AdminController : ControllerBase
     }
 
     [HttpDelete("users/{userId}")]
-    public async Task<IActionResult> DeleteUser([FromServices] UserService userService, UserIdType userId)
+    public async Task<IActionResult> DeleteUser([FromServices] IUserService userService, UserIdType userId)
     {
         await userService.DeleteUser(userId);
         return NoContent();
     }
 
     [HttpPost("users/batch-delete")]
-    public async Task<IActionResult> DeleteUsers([FromServices] UserService userService,
+    public async Task<IActionResult> DeleteUsers([FromServices] IUserService userService,
         [FromBody] [MinLength(1)] ISet<UserIdType> userIds)
     {
         await userService.DeleteUsers(userIds);
@@ -39,7 +39,7 @@ public class AdminController : ControllerBase
     }
 
     [HttpPost("users/{userId}/ban")]
-    public async Task<IActionResult> Ban([FromServices] UserService userService, UserIdType userId,
+    public async Task<IActionResult> Ban([FromServices] IUserService userService, UserIdType userId,
         [FromServices] IAuthorizationService authorizationService)
     {
         var user = await userService.GetUserAsync(userId);
