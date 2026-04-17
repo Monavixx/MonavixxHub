@@ -22,7 +22,8 @@ public class AuthService(
     ILogger<AuthService> logger,
     ISessionService sessionService,
     IHttpContextAccessor httpContextAccessor,
-    IRefreshTokenService refreshTokenService) : IAuthService
+    IRefreshTokenService refreshTokenService,
+    IBackgroundJobClient backgroundJobClient) : IAuthService
 {
     /// <summary>
     /// Authenticates a user with the given username or email and password.
@@ -35,7 +36,7 @@ public class AuthService(
     /// <exception cref="WrongUserCredentialsException">
     /// Thrown if the credentials are invalid or the user does not exist.
     /// </exception>
-    public async ValueTask<AuthResponseDto> LoginAsync(string usernameOrEmail, string password)
+    public async Task<AuthResponseDto> LoginAsync(string usernameOrEmail, string password)
     {
         logger.LogInformation("Login attempt for user '{Username}'.", usernameOrEmail);
         User? user = (emailCheckService.IsValid(usernameOrEmail)
@@ -75,7 +76,7 @@ public class AuthService(
     /// <exception cref="DbUpdateException">
     /// Thrown if the username or email is already in use.
     /// </exception>
-    public async ValueTask<AuthResponseDto> RegisterAsync(string username, string password, string email)
+    public async Task<AuthResponseDto> RegisterAsync(string username, string password, string email)
     {
         logger.LogInformation("Registration attempt for user '{Username}' with email '{Email}'.", username, email);
 
@@ -95,7 +96,7 @@ public class AuthService(
         await dbContext.SaveChangesAsync();
         logger.LogInformation("Successfully registered user {Username} with email {Email}.", username, email);
 
-        BackgroundJob.Enqueue<EmailService>(e => e.SendConfirmationAsync(email, token));
+        backgroundJobClient.Enqueue<EmailService>(e => e.SendConfirmationAsync(email, token));
 
         await sessionService.StartSessionAsync(user.Id);
         AddJwtToCookie(user);
@@ -136,7 +137,7 @@ public class AuthService(
                 builder.SetProperty(u => u.EmailConfirmationToken, tokenBytes);
                 builder.SetProperty(u => u.EmailConfirmationTokenExpiresAt, expires);
             });
-        BackgroundJob.Enqueue<EmailService>(e => e.SendConfirmationAsync(email, token));
+        backgroundJobClient.Enqueue<EmailService>(e => e.SendConfirmationAsync(email, token));
     }
 
     public async Task<User> Refresh()

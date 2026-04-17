@@ -16,7 +16,7 @@ public interface IAuthService
     /// <param name="password">The user's password.</param>
     /// <returns>An <see cref="AuthResponseDto"/> containing user information.</returns>
     /// <exception cref="WrongUserCredentialsException">Thrown if the credentials are invalid or the user does not exist.</exception>
-    ValueTask<AuthResponseDto> LoginAsync(string usernameOrEmail, string password);
+    Task<AuthResponseDto> LoginAsync(string usernameOrEmail, string password);
 
     /// <summary>
     /// Adds a JWT token to the response cookies.
@@ -32,7 +32,7 @@ public interface IAuthService
     /// <param name="email">The user's email address.</param>
     /// <returns>An <see cref="AuthResponseDto"/> containing the newly registered user information.</returns>
     /// <exception cref="DbUpdateException">Thrown if the username or email is already in use.</exception>
-    ValueTask<AuthResponseDto> RegisterAsync(string username, string password, string email);
+    Task<AuthResponseDto> RegisterAsync(string username, string password, string email);
 
     /// <summary>
     /// Confirms a user's email address using a confirmation token.
