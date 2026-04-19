@@ -5,24 +5,25 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
-        <UseTestingPlatform>true</UseTestingPlatform>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="coverlet.collector" Version="6.0.4"/>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1"/>
-        <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4"/>
-        <PackageReference Include="xunit.v3" Version="4.0.0-pre.33" />
-        <PackageReference Include="Moq" Version="4.20.70"/>
+        <PackageReference Include="coverlet.collector" Version="6.0.4" />
+        <PackageReference Include="FluentAssertions" Version="8.9.0" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.4.0" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.5-beta1" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+        <PackageReference Include="xunit.v3" Version="4.0.0-pre.81" />
+        <PackageReference Include="Moq" Version="4.20.70" />
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.5">
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.6">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
     </ItemGroup>
 
     <ItemGroup>
-        <Using Include="Xunit"/>
+        <Using Include="Xunit" />
     </ItemGroup>
 
     <ItemGroup>

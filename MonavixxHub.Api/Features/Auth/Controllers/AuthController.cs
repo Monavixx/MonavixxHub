@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.RateLimiting;
 using MonavixxHub.Api.Common;
 using MonavixxHub.Api.Features.Auth.DTOs;
 using MonavixxHub.Api.Features.Auth.Exceptions;
-using MonavixxHub.Api.Features.Auth.Extensions;
 using MonavixxHub.Api.Features.Auth.Services;
 
 namespace MonavixxHub.Api.Features.Auth.Controllers;
@@ -14,7 +13,10 @@ namespace MonavixxHub.Api.Features.Auth.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/auth")]
-public class AuthController (IAuthService authService) : ControllerBase
+public class AuthController (
+    IAuthService authService,
+    ISessionService sessionService,
+    IRefreshTokenService refreshTokenService) : ControllerBase
 {
     /// <summary>
     /// Registers a new user and returns a new jwt token.
@@ -28,9 +30,40 @@ public class AuthController (IAuthService authService) : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
     {
-        var response =
-            await authService.RegisterAsync(registerDto.Username, registerDto.Password, registerDto.Email);
-        return Ok(response);
+        var user = await authService.RegisterAsync(registerDto.Username, registerDto.Password, registerDto.Email);
+
+        var (session, refreshToken) = await sessionService.CreateSessionAsync(user.Id);
+        SetRefreshTokenCookie(refreshToken, session.ExpiresAt);
+
+        var (jwtToken, jwtExpires) = authService.GenerateJwt(user);
+        SetJwtTokenCookie(jwtToken, jwtExpires);
+
+        return Ok(new AuthResponseDto(user.Id, user.Username, user.Email));
+    }
+
+    private void SetRefreshTokenCookie(byte[] refreshToken, DateTimeOffset expires)
+    {
+        var tokenString = refreshTokenService.RefreshTokenToString(refreshToken);
+        Response.Cookies.Append("refreshToken", tokenString, new CookieOptions
+        {
+            HttpOnly = true,
+            SameSite = SameSiteMode.Strict,
+            Expires = expires,
+            Secure = true,
+            Path = "/"
+        });
+    }
+
+    private void SetJwtTokenCookie(string token, DateTimeOffset expires)
+    {
+        Response.Cookies.Append("JwtToken", token, new CookieOptions
+        {
+            HttpOnly = true,
+            SameSite = SameSiteMode.Lax,
+            Expires = expires,
+            Secure = true,
+            Path = "/"
+        });
     }
 
     [HttpGet("confirm-email")]
@@ -96,23 +129,45 @@ public class AuthController (IAuthService authService) : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
     {
-        var response =
-            await authService.LoginAsync(loginDto.UsernameOrEmail, loginDto.Password);
-        return Ok(response);
+        var user = await authService.LoginAsync(loginDto.UsernameOrEmail, loginDto.Password);
+
+        var (session, refreshToken) = await sessionService.CreateSessionAsync(user.Id);
+        SetRefreshTokenCookie(refreshToken, session.ExpiresAt);
+
+        var (jwtToken, jwtExpires) = authService.GenerateJwt(user);
+        SetJwtTokenCookie(jwtToken, jwtExpires);
+
+        return Ok(new AuthResponseDto(user.Id, user.Username, user.Email));
     }
 
     [HttpPost("refresh")]
     public async Task<IActionResult> Refresh()
     {
-        var user = await authService.Refresh();
+        if (!Request.Cookies.TryGetValue("refreshToken", out var refreshTokenString))
+            return Unauthorized("No refresh token found");
+
+        var (user, newRefreshToken) = await authService.RefreshAsync(refreshTokenString);
+
+        var expiresAt = DateTimeOffset.UtcNow.Add(Models.Session.Expiration);
+        SetRefreshTokenCookie(newRefreshToken, expiresAt);
+
+        var (jwtToken, jwtExpires) = authService.GenerateJwt(user);
+        SetJwtTokenCookie(jwtToken, jwtExpires);
+
         return Ok(new AuthResponseDto(user.Id, user.Username, user.Email));
     }
     
     [HttpPost("logout")]
     public async Task<IActionResult> Logout()
     {
-        await authService.Logout();
+        if (!Request.Cookies.TryGetValue("refreshToken", out var refreshTokenString))
+            return Unauthorized("No refresh token found");
+
+        await authService.LogoutAsync(refreshTokenString);
+
+        Response.Cookies.Delete("JwtToken");
+        Response.Cookies.Delete("refreshToken");
+
         return NoContent();
     }
 }
-// TODO: cookie handling to controller

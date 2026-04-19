@@ -1,3 +1,4 @@
+using MonavixxHub.Api.Features.Auth.Exceptions;
 using MonavixxHub.Api.Features.Auth.Models;
 
 namespace MonavixxHub.Api.Features.Auth.Services;
@@ -11,16 +12,18 @@ public interface ISessionService
     /// Starts a new session for the specified user.
     /// </summary>
     /// <param name="userId">The user ID to start a session for.</param>
-    /// <returns>The created session entity.</returns>
-    Task<Session> StartSessionAsync(UserIdType userId);
+    /// <returns>A tuple containing the created session entity and the raw refresh token.</returns>
+    Task<(Session Session, byte[] RefreshToken)> CreateSessionAsync(UserIdType userId);
 
     /// <summary>
     /// Validates and refreshes an existing session using a refresh token.
     /// </summary>
     /// <param name="refreshToken">The refresh token for the session.</param>
     /// <returns>The new session created after validation.</returns>
-    /// <exception cref="RefreshTokenNotFoundException">Thrown if the refresh token is not found.</exception>
+    /// <exception cref="SessionNotFoundException">Thrown if the session is not found.</exception>
     /// <exception cref="SessionExpiredException">Thrown if the session has expired.</exception>
-    Task<Session> EnsureSessionIsValidAsync(string refreshToken);
+    Task<(Session Session, byte[] RefreshToken)> RotateSessionAsync(string refreshToken);
+
+    Task CleanExpiredSessionsAsync();
 }
 

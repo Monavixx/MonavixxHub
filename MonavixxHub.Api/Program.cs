@@ -15,8 +15,10 @@ using MonavixxHub.Api.Common.Options;
 using MonavixxHub.Api.Common.Options.RateLimiting;
 using MonavixxHub.Api.Common.Services;
 using MonavixxHub.Api.Features.Auth.Authorization;
+using MonavixxHub.Api.Features.Auth.Jobs;
 using MonavixxHub.Api.Features.Auth.Middlewares;
 using MonavixxHub.Api.Features.Auth.Services;
+using MonavixxHub.Api.Features.Auth.Services.Hosted;
 using MonavixxHub.Api.Features.Flashcards.Authorization;
 using MonavixxHub.Api.Features.Flashcards.Services;
 using MonavixxHub.Api.Features.FlashcardsStudy;
@@ -96,6 +98,8 @@ builder.Services.AddHangfireServer(options =>
 {
     options.WorkerCount = 2;
 });
+builder.Services.AddScoped<ISessionCleaningJob, SessionCleaningJob>();
+builder.Services.AddHostedService<HangfireBootstrapService>();
 
 builder.Services.AddRateLimiter(options =>
 {

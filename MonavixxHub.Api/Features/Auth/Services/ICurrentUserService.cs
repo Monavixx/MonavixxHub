@@ -1,3 +1,4 @@
+using MonavixxHub.Api.Features.Auth.Exceptions;
 using MonavixxHub.Api.Features.Auth.Models;
 
 namespace MonavixxHub.Api.Features.Auth.Services;

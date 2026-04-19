@@ -21,7 +21,6 @@ public class AuthService(
     IEmailCheckService emailCheckService,
     ILogger<AuthService> logger,
     ISessionService sessionService,
-    IHttpContextAccessor httpContextAccessor,
     IRefreshTokenService refreshTokenService,
     IBackgroundJobClient backgroundJobClient) : IAuthService
 {
@@ -31,12 +30,12 @@ public class AuthService(
     /// <param name="usernameOrEmail">The username or email of the user attempting to log in.</param>
     /// <param name="password">The user's password.</param>
     /// <returns>
-    /// An <see cref="AuthResponseDto"/> containing the authentication token and the additional data.
+    /// The authenticated user.
     /// </returns>
     /// <exception cref="WrongUserCredentialsException">
     /// Thrown if the credentials are invalid or the user does not exist.
     /// </exception>
-    public async Task<AuthResponseDto> LoginAsync(string usernameOrEmail, string password)
+    public async Task<User> LoginAsync(string usernameOrEmail, string password)
     {
         logger.LogInformation("Login attempt for user '{Username}'.", usernameOrEmail);
         User? user = (emailCheckService.IsValid(usernameOrEmail)
@@ -44,24 +43,11 @@ public class AuthService(
             : await dbContext.Users.SingleOrDefaultAsync(u => u.Username == usernameOrEmail));
         if (user is null || !passwordHashService.Verify(password, user.PasswordHash))
             throw new WrongUserCredentialsException();
-        await sessionService.StartSessionAsync(user.Id);
-        AddJwtToCookie(user);
-        return new AuthResponseDto(user.Id, user.Username, user.Email);
+        return user;
     }
 
-    public void AddJwtToCookie(User user)
-    {
-        var (token, expires) = jwtTokenService.GenerateToken(user);
-        httpContextAccessor.HttpContext!.Response.Cookies.Append("JwtToken", token,
-            new CookieOptions
-            {
-                HttpOnly = true,
-                SameSite = SameSiteMode.Lax,
-                Expires = expires,
-                Secure = true,
-                Path = "/"
-            });
-    }
+    public (string Token, DateTimeOffset Expires) GenerateJwt(User user)
+        => jwtTokenService.GenerateToken(user);
 
     /// <summary>
     /// Registers a new user with the specified username, password, and email.
@@ -70,19 +56,18 @@ public class AuthService(
     /// <param name="password">The desired password.</param>
     /// <param name="email">The user's email address.</param>
     /// <returns>
-    /// An <see cref="AuthResponseDto"/> containing the authentication token
-    /// and the additional data of the newly registered user.
+    /// The newly created user.
     /// </returns>
     /// <exception cref="DbUpdateException">
     /// Thrown if the username or email is already in use.
     /// </exception>
-    public async Task<AuthResponseDto> RegisterAsync(string username, string password, string email)
+    public async Task<User> RegisterAsync(string username, string password, string email)
     {
         logger.LogInformation("Registration attempt for user '{Username}' with email '{Email}'.", username, email);
 
         var tokenBytes = GenerateConfirmationToken();
         var token = Convert.ToBase64String(tokenBytes);
-        User user = new User()
+        User user = new()
         {
             Email = email,
             Username = username,
@@ -98,13 +83,10 @@ public class AuthService(
 
         backgroundJobClient.Enqueue<EmailService>(e => e.SendConfirmationAsync(email, token));
 
-        await sessionService.StartSessionAsync(user.Id);
-        AddJwtToCookie(user);
-        return new AuthResponseDto(user.Id, user.Username, user.Email);
+        return user;
     }
-    private static byte[] GenerateConfirmationToken() 
-        => RandomNumberGenerator.GetBytes(32);
 
+    /// <inheritdoc />
     public async Task ConfirmEmailAsync(string token)
     {
         byte[] tokenBytes = Convert.FromBase64String(token);
@@ -122,6 +104,7 @@ public class AuthService(
             throw new InvalidEmailConfirmationTokenException();
     }
 
+    /// <inheritdoc />
     public async Task NewEmailConfirmationTokenAsync(ClaimsPrincipal user)
     {
         var email = user.GetEmail();
@@ -140,31 +123,18 @@ public class AuthService(
         backgroundJobClient.Enqueue<EmailService>(e => e.SendConfirmationAsync(email, token));
     }
 
-    public async Task<User> Refresh()
+    /// <inheritdoc />
+    public async Task<(User User, byte[] NewRefreshToken)> RefreshAsync(string refreshToken)
     {
-        if (!httpContextAccessor.HttpContext!.Request.Cookies.TryGetValue("refreshToken", out var refreshToken))
-            throw new RefreshTokenNotFoundException();
-        var session = await sessionService.EnsureSessionIsValidAsync(refreshToken);
+        var (session, newRefreshToken) = await sessionService.RotateSessionAsync(refreshToken);
         var user = await dbContext.Users.FindAsync(session.UserId);
         if (user is null) throw new UserDoesNotExistException();
-        AddJwtToCookie(user);
-        return user;
+        return (user, newRefreshToken);
     }
 
-    public async Task Logout()
+    /// <inheritdoc />
+    public async Task LogoutAsync(string refreshToken)
     {
-        var options = new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.Strict,
-            Path = "/"
-        };
-
-        httpContextAccessor.HttpContext!.Response.Cookies.Delete("JwtToken", options);
-        httpContextAccessor.HttpContext!.Response.Cookies.Delete("refreshToken", options);
-        if (!httpContextAccessor.HttpContext!.Request.Cookies.TryGetValue("refreshToken", out var refreshToken))
-            throw new RefreshTokenNotFoundException();
         var rt = refreshTokenService.Hash(refreshToken);
         if (await dbContext.Sessions
                 .Where(s => s.RefreshTokenHash == rt)
@@ -173,4 +143,7 @@ public class AuthService(
             throw new SessionNotFoundException();
         }
     }
+
+    private static byte[] GenerateConfirmationToken()
+        => RandomNumberGenerator.GetBytes(32);
 }

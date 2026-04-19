@@ -8,8 +8,8 @@ namespace MonavixxHub.Api.UnitTests.Helpers;
 /// </summary>
 public static class TestDbContextFactory
 {
-    private static readonly string ConnectionString = 
-        "Host=localhost;Port=5433;Database=monavixxhub_test;Username=postgres;Password=postgres";
+    private static string ConnectionString(string dbName) => 
+        $"Host=localhost;Port=5433;Database={dbName};Username=postgres;Password=admin";
 
     /// <summary>
     /// Creates a new AppDbContext with PostgreSQL database for testing.
@@ -20,7 +20,7 @@ public static class TestDbContextFactory
     public static AppDbContext CreateTestDbContext(string dbName = "TestDb")
     {
         var uniqueDbName = dbName + "_" + Guid.NewGuid().ToString("N");
-        var testConnectionString = ConnectionString.Replace("monavixxhub_test", uniqueDbName);
+        var testConnectionString = ConnectionString(uniqueDbName);
         
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseNpgsql(testConnectionString)

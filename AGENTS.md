@@ -11,26 +11,6 @@ MonavixxHub.Api is a .NET 10 REST API project built with C# that provides functi
 - **Additional Features**: Image processing, Email confirmation, Study sessions
 - **Validation**: DataAnnotations or FluentValidation for request validation
 
-## Project Structure
-
-```
-MonavixxHub.Api/
-├── Features/                 # Feature-based folder structure
-│   ├── Admin/               # Admin management features
-│   ├── Auth/                # Authentication and registration
-│   ├── Flashcards/          # Flashcard CRUD operations
-│   ├── FlashcardsStudy/      # Study session logic
-│   └── Images/              # Image upload and processing
-├── Infrastructure/          # Database context and EF Core setup
-├── Common/                  # Shared utilities
-│   ├── Authorization/       # Custom authorization handlers
-│   ├── Exceptions/          # Global exception handling
-│   ├── Policies.cs          # Authorization policies
-│   └── Services/            # Common services
-├── Migrations/              # EF Core database migrations
-└── Properties/              # Launch settings and configuration
-```
-
 ## Key Files & Their Purposes
 
 | File | Purpose |
@@ -109,28 +89,6 @@ MonavixxHub.Api/
 - Mock external dependencies (database, HTTP calls)
 - Test file naming: `[FeatureName]Tests.cs`
 - Calls to methods which accept CancellationToken should use TestContext.Current.CancellationToken to allow test cancellation to be more responsive.
-
-## Running the Project
-
-```bash
-# Restore NuGet packages
-dotnet restore
-
-# Apply migrations
-dotnet ef database update
-
-# Build the project
-dotnet build
-
-# Run the project
-dotnet run
-
-# Run tests
-dotnet test
-
-# Run in watch mode (development)
-dotnet watch run
-```
 
 ## Environment Configuration
 

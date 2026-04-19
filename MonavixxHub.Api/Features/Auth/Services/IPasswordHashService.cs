@@ -1,3 +1,5 @@
+using MonavixxHub.Api.Features.Auth.Exceptions;
+
 namespace MonavixxHub.Api.Features.Auth.Services;
 
 /// <summary>
@@ -10,6 +12,7 @@ public interface IPasswordHashService
     /// </summary>
     /// <param name="password">The plain-text password to hash.</param>
     /// <returns>A byte array containing the hashed password and salt.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="password"/> is null.</exception>
     byte[] Hash(string password);
 
     /// <summary>
@@ -18,6 +21,8 @@ public interface IPasswordHashService
     /// <param name="password">The plain-text password to verify.</param>
     /// <param name="hash">The stored password hash to compare against.</param>
     /// <returns>True if the password is correct; otherwise, false.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="password"/> or <paramref name="hash"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="hash"/> is too short.</exception>
     bool Verify(string password, byte[] hash);
 }
 

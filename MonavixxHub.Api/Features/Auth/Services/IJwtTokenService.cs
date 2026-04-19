@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using MonavixxHub.Api.Features.Auth.Exceptions;
 using MonavixxHub.Api.Features.Auth.Models;
 
 namespace MonavixxHub.Api.Features.Auth.Services;
@@ -13,6 +14,7 @@ public interface IJwtTokenService
     /// </summary>
     /// <param name="user">The user for whom the token will be generated.</param>
     /// <returns>A tuple containing the JWT string and its expiration time.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="user"/> is null.</exception>
     (string, DateTimeOffset) GenerateToken(User user);
 
     /// <summary>
@@ -20,6 +22,7 @@ public interface IJwtTokenService
     /// </summary>
     /// <param name="token">The JWT token to validate.</param>
     /// <returns>The claims principal if valid; otherwise, null.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="token"/> is null or empty.</exception>
     ClaimsPrincipal? Validate(string token);
 }
 

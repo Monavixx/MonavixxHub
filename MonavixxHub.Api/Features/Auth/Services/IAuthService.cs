@@ -14,15 +14,16 @@ public interface IAuthService
     /// </summary>
     /// <param name="usernameOrEmail">The username or email of the user attempting to log in.</param>
     /// <param name="password">The user's password.</param>
-    /// <returns>An <see cref="AuthResponseDto"/> containing user information.</returns>
+    /// <returns>The authenticated user.</returns>
     /// <exception cref="WrongUserCredentialsException">Thrown if the credentials are invalid or the user does not exist.</exception>
-    Task<AuthResponseDto> LoginAsync(string usernameOrEmail, string password);
+    Task<User> LoginAsync(string usernameOrEmail, string password);
 
     /// <summary>
-    /// Adds a JWT token to the response cookies.
+    /// Generates a JWT token for the specified user.
     /// </summary>
-    /// <param name="user">The user for whom to generate and add the token.</param>
-    void AddJwtToCookie(User user);
+    /// <param name="user">The user for whom to generate the token.</param>
+    /// <returns>A tuple containing the JWT token string and its expiration time.</returns>
+    (string Token, DateTimeOffset Expires) GenerateJwt(User user);
 
     /// <summary>
     /// Registers a new user with the specified username, password, and email.
@@ -30,9 +31,9 @@ public interface IAuthService
     /// <param name="username">The desired username.</param>
     /// <param name="password">The desired password.</param>
     /// <param name="email">The user's email address.</param>
-    /// <returns>An <see cref="AuthResponseDto"/> containing the newly registered user information.</returns>
+    /// <returns>The newly created user.</returns>
     /// <exception cref="DbUpdateException">Thrown if the username or email is already in use.</exception>
-    Task<AuthResponseDto> RegisterAsync(string username, string password, string email);
+    Task<User> RegisterAsync(string username, string password, string email);
 
     /// <summary>
     /// Confirms a user's email address using a confirmation token.
@@ -50,16 +51,18 @@ public interface IAuthService
     /// <summary>
     /// Refreshes the user's authentication token using the refresh token.
     /// </summary>
-    /// <returns>The user entity.</returns>
-    /// <exception cref="RefreshTokenNotFoundException">Thrown if no refresh token is found.</exception>
+    /// <param name="refreshToken">The refresh token from the request cookie.</param>
+    /// <returns>A tuple containing the user entity and the new refresh token.</returns>
+    /// <exception cref="SessionNotFoundException">Thrown if no refresh token is found.</exception>
     /// <exception cref="UserDoesNotExistException">Thrown if the user does not exist.</exception>
-    Task<User> Refresh();
+    Task<(User User, byte[] NewRefreshToken)> RefreshAsync(string refreshToken);
 
     /// <summary>
-    /// Logs out the user by deleting session and clearing cookies.
+    /// Logs out the user by deleting the session.
     /// </summary>
-    /// <exception cref="RefreshTokenNotFoundException">Thrown if no refresh token is found.</exception>
+    /// <param name="refreshToken">The refresh token from the request cookie.</param>
+    /// <exception cref="SessionNotFoundException">Thrown if no refresh token is found.</exception>
     /// <exception cref="SessionNotFoundException">Thrown if the session is not found.</exception>
-    Task Logout();
+    Task LogoutAsync(string refreshToken);
 }
 

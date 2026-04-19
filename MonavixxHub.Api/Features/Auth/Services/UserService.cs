@@ -24,7 +24,6 @@ public class UserService (AppDbContext dbContext) : IUserService
 
     public async Task DeleteUser(UserIdType userId)
     {
-        // dbContext.Flashcards.Where(f => f.OwnerId == userId)
         if(await dbContext.Users.Where(u => u.Id == userId).ExecuteDeleteAsync() is 0)
             throw new UserDoesNotExistException();
     }
