@@ -13,7 +13,7 @@ public class FlashcardConfiguration : IEntityTypeConfiguration<Flashcard>
             .HasForeignKey(g => g.OwnerId)
             .OnDelete(DeleteBehavior.Cascade);
         f.HasOne(g => g.Image)
-            .WithMany()
+            .WithMany(i=>i.Flashcards)
             .HasForeignKey(g => g.ImageId)
             .OnDelete(DeleteBehavior.SetNull);
         f.Property(x => x.Front).HasMaxLength(Flashcard.FrontMaxLength);

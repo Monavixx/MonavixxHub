@@ -11,4 +11,15 @@ namespace MonavixxHub.Api.Features.Flashcards.Authorization;
 public class FlashcardSetAccessRequirement(FlashcardSetAccessType accessType) : IAuthorizationRequirement
 {
     public FlashcardSetAccessType AccessType { get; init; } = accessType;
+    
+    public static readonly FlashcardSetAccessRequirement ReadAccess = new(FlashcardSetAccessType.Read);
+    public static readonly FlashcardSetAccessRequirement EditAccess = new(FlashcardSetAccessType.Edit);
+
+    public static FlashcardSetAccessRequirement Resolve(FlashcardSetAccessType accessType)
+        => accessType switch
+        {
+            FlashcardSetAccessType.Read => ReadAccess,
+            FlashcardSetAccessType.Edit => EditAccess,
+            _ => throw new ArgumentOutOfRangeException(nameof(accessType), $"Unsupported access type: {accessType}")
+        };
 }

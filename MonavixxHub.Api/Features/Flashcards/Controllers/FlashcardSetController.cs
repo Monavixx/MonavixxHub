@@ -4,9 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using MonavixxHub.Api.Common;
 using MonavixxHub.Api.Features.Auth.Extensions;
 using MonavixxHub.Api.Features.Flashcards.Authorization;
+using MonavixxHub.Api.Features.Flashcards.Authorization.Filters;
 using MonavixxHub.Api.Features.Flashcards.DTOs;
 using MonavixxHub.Api.Features.Flashcards.DTOs.Request;
 using MonavixxHub.Api.Features.Flashcards.DTOs.Response;
+using MonavixxHub.Api.Features.Flashcards.Models;
 using MonavixxHub.Api.Features.Flashcards.Services;
 
 namespace MonavixxHub.Api.Features.Flashcards.Controllers;
@@ -21,44 +23,30 @@ namespace MonavixxHub.Api.Features.Flashcards.Controllers;
 [Authorize(Policy = Policies.EmailConfirmed)]
 [ApiController]
 [Route("api/flashcard-sets")]
-public class FlashcardSetController(IAuthorizationService authorizationService, IFlashcardSetService flashcardSetService)
+public class FlashcardSetController(IFlashcardSetService flashcardSetService)
     : ControllerBase
 {
     /// <summary>
     /// Retrieves a specific flashcard set by its unique identifier.
     /// </summary>
-    /// <param name="id">The ID of the flashcard set to retrieve.</param>
+    /// <param name="flashcardSetId">The ID of the flashcard set to retrieve.</param>
     /// <param name="includeEntries">Whether to include entries in the response or not. Default to false.</param>
-    /// <param name="ordered">Whether to sort the entries in the response or not.
-    /// Ignores if <paramref name="includeEntries"/> is false.
-    /// Default to true.</param>
     /// <returns>
     /// - 200 OK with <see cref="GetFlashcardSetDto"/> if the user has read access.
     /// - 403 Forbidden if the user is not authorized.
     /// - 404 Not Found if the flashcard set does not exist.
     /// </returns>
-    [HttpGet("{id:guid}")]
+    [HttpGet("{flashcardSetId:guid}")]
     [ProducesResponseType<IActionResult>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async ValueTask<IActionResult> Get(Guid id,
-        [FromQuery(Name = "entries")] bool? includeEntries,
-        [FromQuery(Name = "ordered")] bool? ordered)
+    [FlashcardSetAuthorizationFilter(FlashcardSetAccessType.Read)]
+    public IActionResult Get(Guid flashcardSetId,
+        [FromQuery(Name = "entries")] bool includeEntries = false)
     {
-        var flashcardSet = await flashcardSetService.GetAsync(id);
-        var authorizationResult =
-            await authorizationService.AuthorizeAsync(User, flashcardSet, Requirements.FlashcardSet.ReadAccess);
-        if (!authorizationResult.Succeeded) return Forbid();
-
-        await flashcardSetService.EnsureSubsetsLoadedAsync(flashcardSet);
-        if (includeEntries is true)
-        {
-            if (ordered is not false)
-                await flashcardSetService.EnsureEntriesLoadedAndOrderedWithFlashcardAsync(flashcardSet);
-            else
-                await flashcardSetService.EnsureEntriesLoadedWithFlashcardAsync(flashcardSet);
+        var flashcardSet = (FlashcardSet)HttpContext.Items[FlashcardSetAuthorizationFilterAttribute.FlashcardSetKey]!;
+        if (includeEntries)
             return Ok(new GetFlashcardSetWithEntriesDto(flashcardSet));
-        }
 
         return Ok(new GetFlashcardSetDto(flashcardSet));
     }
@@ -95,26 +83,21 @@ public class FlashcardSetController(IAuthorizationService authorizationService, 
     [ProducesResponseType<GetFlashcardSetDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [FlashcardSetAuthorizationFilter(FlashcardSetAccessType.Edit)]
     public async Task<IActionResult> Put(Guid id, [FromBody] UpdateFlashcardSetDto dto)
     {
-        var flashcardSet = await flashcardSetService.GetAsync(id);
-        var authorizationResult =
-            await authorizationService.AuthorizeAsync(User, flashcardSet, Requirements.FlashcardSet.EditAccess);
-        if (authorizationResult.Succeeded)
-            return Ok(new GetFlashcardSetDto(await flashcardSetService.UpdateAsync(flashcardSet, dto)));
-        return Forbid();
+        var flashcardSet = (FlashcardSet)HttpContext.Items[FlashcardSetAuthorizationFilterAttribute.FlashcardSetKey]!;
+        return Ok(new GetFlashcardSetDto(await flashcardSetService.UpdateAsync(flashcardSet, dto)));
     }
 
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [FlashcardSetAuthorizationFilter(FlashcardSetAccessType.Edit)]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var flashcardSet = await flashcardSetService.GetAsync(id);
-        var authorizationResult =
-            await authorizationService.AuthorizeAsync(User, flashcardSet, Requirements.FlashcardSet.EditAccess);
-        if (!authorizationResult.Succeeded) return Forbid();
+        var flashcardSet = (FlashcardSet)HttpContext.Items[FlashcardSetAuthorizationFilterAttribute.FlashcardSetKey]!;
         await flashcardSetService.DeleteAsync(flashcardSet);
         return NoContent();
     }
@@ -130,5 +113,6 @@ public class FlashcardSetController(IAuthorizationService authorizationService, 
     public IQueryable<GetFlashcardSetDto> GetLearningSets()
         => flashcardSetService
             .GetLearningSets(User.GetUserId())
+            .Include(s => s.Subsets)
             .Select(GetFlashcardSetDto.Projection);
 }

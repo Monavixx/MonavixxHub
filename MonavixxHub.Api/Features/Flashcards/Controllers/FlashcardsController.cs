@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MonavixxHub.Api.Common;
 using MonavixxHub.Api.Features.Auth.Extensions;
 using MonavixxHub.Api.Features.Flashcards.Authorization;
+using MonavixxHub.Api.Features.Flashcards.Authorization.Filters;
 using MonavixxHub.Api.Features.Flashcards.DTOs.Request;
 using MonavixxHub.Api.Features.Flashcards.DTOs.Response;
 using MonavixxHub.Api.Features.Flashcards.Models;
@@ -20,6 +22,7 @@ namespace MonavixxHub.Api.Features.Flashcards.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/flashcards")]
+[Authorize(Policy = Policies.EmailConfirmed)]
 public class FlashcardsController(IFlashcardService flashcardService) : ControllerBase
 {
     /// <summary>
@@ -48,17 +51,14 @@ public class FlashcardsController(IFlashcardService flashcardService) : Controll
     /// Returns 200 OK with <see cref="GetFlashcardDto"/> if authorized,
     /// 403 Forbidden if the user cannot read, or 404 Not Found if the flashcard does not exist.
     /// </returns>
-    [HttpGet("{id:guid}")]
+    [HttpGet("{flashcardId:guid}")]
     [ProducesResponseType<GetFlashcardDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async ValueTask<IActionResult> Get(Guid id,
-        [FromServices] IAuthorizationService authorizationService)
+    [FlashcardAuthorizationFilter(FlashcardAccessType.Read)]
+    public IActionResult Get([FromRoute] Guid flashcardId)
     {
-        var flashcard = await flashcardService.GetAsync(id);
-        var authRes =
-            await authorizationService.AuthorizeAsync(User, flashcard, Requirements.Flashcard.ReadAccess);
-        if (!authRes.Succeeded) return Forbid();
+        var flashcard = (Flashcard)HttpContext.Items[FlashcardAuthorizationFilterAttribute.FlashcardKey]!;
         return Ok(GetFlashcardDto.FromFlashcard(flashcard));
     }
 
@@ -77,7 +77,7 @@ public class FlashcardsController(IFlashcardService flashcardService) : Controll
     {
         if (dto.FlashcardSetId is { } fsi &&
             !(await authorizationService.AuthorizeAsync(User, await flashcardSetService.GetAsync(fsi),
-                Requirements.FlashcardSet.EditAccess)).Succeeded)
+                FlashcardSetAccessRequirement.EditAccess)).Succeeded)
             return Forbid();
         var flashcard = await flashcardService.CreateAsync(dto, User);
         
@@ -86,91 +86,64 @@ public class FlashcardsController(IFlashcardService flashcardService) : Controll
     /// <summary>
     /// Partially updates a flashcard if the current user has edit access.
     /// </summary>
-    /// <param name="id">The ID of the flashcard to update.</param>
+    /// <param name="flashcardId">The ID of the flashcard to update.</param>
     /// <param name="dto">A <see cref="PatchFlashcardDto"/> containing the fields to update.</param>
-    /// <param name="authorizationService">Service to evaluate the <see cref="FlashcardAccessRequirement"/> for edit access.</param>
     /// <returns>
     /// Returns 200 OK with the updated <see cref="GetFlashcardDto"/> if successful,
     /// 403 Forbidden if the user lacks edit access,
     /// or 404 Not Found if the flashcard does not exist.
     /// </returns>
-    [HttpPatch("{id:guid}")]
+    [HttpPatch("{flashcardId:guid}")]
     [ProducesResponseType<GetFlashcardDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async ValueTask<IActionResult> Patch(Guid id, [FromForm] PatchFlashcardDto dto,
-        [FromServices] IAuthorizationService authorizationService)
+    [FlashcardAuthorizationFilter(FlashcardAccessType.Edit)]
+    public async ValueTask<IActionResult> Patch([FromRoute] Guid flashcardId, [FromForm] PatchFlashcardDto dto)
     {
-        return await EditAccess(id, authorizationService, async flashcard =>
-        {
-            await flashcardService.PatchAsync(flashcard, dto);
-            return Ok(GetFlashcardDto.FromFlashcard(flashcard));
-        });
+        var flashcard = (Flashcard)HttpContext.Items[FlashcardAuthorizationFilterAttribute.FlashcardKey]!;
+        await flashcardService.PatchAsync(flashcard, dto);
+        return Ok(GetFlashcardDto.FromFlashcard(flashcard));
     }
     /// <summary>
     /// Fully updates a flashcard if the current user has edit access.
     /// </summary>
-    /// <param name="id">The ID of the flashcard to update.</param>
+    /// <param name="flashcardId">The ID of the flashcard to update.</param>
     /// <param name="dto">A <see cref="UpdateFlashcardDto"/> containing the new data for the flashcard.</param>
-    /// <param name="authorizationService">Service to evaluate the <see cref="FlashcardAccessRequirement"/> for edit access.</param>
     /// <returns>
     /// Returns 200 OK with the updated <see cref="GetFlashcardDto"/> if successful,
     /// 403 Forbidden if the user lacks edit access,
     /// or 404 Not Found if the flashcard does not exist.
     /// </returns>
-    [HttpPut("{id:guid}")]
+    [HttpPut("{flashcardId:guid}")]
     [ProducesResponseType<GetFlashcardDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async ValueTask<IActionResult> Update(Guid id, [FromForm] UpdateFlashcardDto dto,
-        [FromServices] IAuthorizationService authorizationService)
+    [FlashcardAuthorizationFilter(FlashcardAccessType.Edit)]
+    public async ValueTask<IActionResult> Update([FromRoute] Guid flashcardId, [FromForm] UpdateFlashcardDto dto)
     {
-        return await EditAccess(id, authorizationService, async flashcard =>
-        {
-            await flashcardService.UpdateAsync(flashcard, dto);
-            return Ok(GetFlashcardDto.FromFlashcard(flashcard));
-        });
+        var flashcard = (Flashcard)HttpContext.Items[FlashcardAuthorizationFilterAttribute.FlashcardKey]!;
+        await flashcardService.UpdateAsync(flashcard, dto);
+        return Ok(GetFlashcardDto.FromFlashcard(flashcard));
     }
 
     /// <summary>
     /// Deletes a flashcard if the current user has edit access.
     /// </summary>
-    /// <param name="id">The ID of the flashcard to delete.</param>
-    /// <param name="authorizationService">Service to evaluate the <see cref="FlashcardAccessRequirement"/> for edit access.</param>
+    /// <param name="flashcardId">The ID of the flashcard to delete.</param>
     /// <returns>
     /// Returns 204 No Content if the deletion is successful,
     /// 403 Forbidden if the user lacks edit access,
     /// or 404 Not Found if the flashcard does not exist.
     /// </returns>
-    [HttpDelete("{id:guid}")]
+    [HttpDelete("{flashcardId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async ValueTask<IActionResult> Delete(Guid id,
-        [FromServices] IAuthorizationService authorizationService)
+    [FlashcardAuthorizationFilter(FlashcardAccessType.Edit)]
+    public async ValueTask<IActionResult> Delete([FromRoute] Guid flashcardId)
     {
-        return await EditAccess(id, authorizationService, async flashcard =>
-        {
-            await flashcardService.DeleteAsync(flashcard);
-            return NoContent();
-        });
-    }
-
-    /// <summary>
-    /// Evaluates edit access for a specific flashcard and executes a given function if authorized.
-    /// </summary>
-    /// <param name="id">The ID of the flashcard to check.</param>
-    /// <param name="authorizationService">Service to check the user's edit access.</param>
-    /// <param name="func">A function to execute if the user is authorized.</param>
-    /// <returns>
-    /// Returns the result of <paramref name="func"/> if authorized, otherwise 403 Forbidden.
-    /// </returns>
-    private async ValueTask<IActionResult> EditAccess(Guid id, IAuthorizationService authorizationService,
-        Func<Flashcard, ValueTask<IActionResult>> func)
-    {
-        var flashcard = await flashcardService.GetAsync(id);
-        var authRes = await authorizationService.AuthorizeAsync(User, flashcard, Requirements.Flashcard.EditAccess);
-        if (!authRes.Succeeded) return Forbid();
-        return await func(flashcard);
+        var flashcard = (Flashcard)HttpContext.Items[FlashcardAuthorizationFilterAttribute.FlashcardKey]!;
+        await flashcardService.DeleteAsync(flashcard);
+        return NoContent();
     }
 }

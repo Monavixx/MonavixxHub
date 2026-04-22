@@ -4,6 +4,5 @@ namespace MonavixxHub.Api.Features.Flashcards.DTOs.Request;
 
 public record AddFlashcardToSetDto
 (
-    [Required] Guid FlashcardId,
     int? Order
 );

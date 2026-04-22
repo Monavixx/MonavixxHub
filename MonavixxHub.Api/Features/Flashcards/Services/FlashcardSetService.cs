@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using MonavixxHub.Api.Features.Auth.Extensions;
@@ -83,10 +84,49 @@ public class FlashcardSetService (AppDbContext dbContext, ILogger<FlashcardSetSe
     /// <exception cref="FlashcardSetNotFoundException">
     /// Thrown if a flashcard set with the specified ID doesn't exist.
     /// </exception>
-    public async Task<FlashcardSet> GetAsync(Guid setId)
+    public async Task<FlashcardSet> GetAsync(Guid setId, bool includeEntries = false, bool thenIncludeFlashcard = false,
+        bool includeSubsets = false)
     {
         logger.LogDebug("Getting FlashcardSet [{FlashcardSetId}]...", setId);
-        return await dbContext.FlashcardSets.FindAsync(setId) ?? throw new FlashcardSetNotFoundException();
+        var query = dbContext.FlashcardSets.Where(fs => fs.Id == setId);
+        if (includeEntries)
+        {
+            if (thenIncludeFlashcard)
+                query = query.Include(fs => fs.Entries).ThenInclude(e => e.Flashcard);
+            else
+                query = query.Include(fs => fs.Entries);
+        }
+
+        if (includeSubsets)
+            query = query.Include(fs => fs.Subsets);
+        return await query.FirstOrDefaultAsync() ?? throw new FlashcardSetNotFoundException();
+    }
+
+    public async Task<(FlashcardSet, IList<TFlashcardDto>)> GetWithEntriesPageAsync<TFlashcardDto>(Guid setId, int page,
+        int limit, Expression<Func<Flashcard, TFlashcardDto>> flashcardProjection,
+        bool includeSubsets = false)
+    {
+        logger.LogDebug("Getting FlashcardSet [{FlashcardSetId}] with entries page...", setId);
+        var query = dbContext.FlashcardSets
+            .Where(fs => fs.Id == setId);
+        if (includeSubsets)
+            query = query.Include(fs => fs.Subsets);
+
+
+        var result = await query.Select(fs => new
+        {
+            FlashcardSet = fs,
+            Flashcards = fs.Entries
+                .OrderBy(e => e.Order)
+                .Select(e => e.Flashcard)
+                .AsQueryable()
+                .Select(flashcardProjection)
+                .Take(limit)
+                .Skip(page * limit)
+                .ToList()
+        }).FirstOrDefaultAsync() ?? throw new FlashcardSetNotFoundException();
+
+        return (result.FlashcardSet, result.Flashcards);
     }
 
     public IQueryable<FlashcardSet> GetUsersSets(UserIdType userId)

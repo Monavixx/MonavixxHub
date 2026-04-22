@@ -1,5 +1,8 @@
+using System.Linq.Expressions;
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 using MonavixxHub.Api.Features.Flashcards.DTOs.Request;
+using MonavixxHub.Api.Features.Flashcards.Exceptions;
 using MonavixxHub.Api.Features.Flashcards.Models;
 
 namespace MonavixxHub.Api.Features.Flashcards.Services;
@@ -42,7 +45,12 @@ public interface IFlashcardSetService
     /// <param name="setId">Flashcard set ID to find by.</param>
     /// <returns>The flashcard set with the specified ID.</returns>
     /// <exception cref="FlashcardSetNotFoundException">Thrown if a flashcard set with the specified ID doesn't exist.</exception>
-    Task<FlashcardSet> GetAsync(Guid setId);
+    Task<FlashcardSet> GetAsync(Guid setId, bool includeEntries = false, bool thenIncludeFlashcard = false,
+        bool includeSubsets = false);
+
+    Task<(FlashcardSet, IList<TFlashcardDto>)> GetWithEntriesPageAsync<TFlashcardDto>(Guid setId, int page, int limit,
+        Expression<Func<Flashcard, TFlashcardDto>> flashcardProjection,
+        bool includeSubsets = false);
 
     /// <summary>
     /// Gets all flashcard sets owned by the specified user.

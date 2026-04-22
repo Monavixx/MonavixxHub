@@ -128,7 +128,7 @@ public class FlashcardService (IImageService imageService, AppDbContext dbContex
     /// <summary>
     /// Returns a queryable collection of flashcards owned by the specified user.
     /// </summary>
-    /// <param name="user">User whose flashcards to retrieve.</param>
+    /// <param name="userId">User whose flashcards to retrieve.</param>
     /// <returns>An IQueryable collection that can be further filtered or projected.</returns>
     public IQueryable<Flashcard> GetAll(UserIdType userId)
     {

@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MonavixxHub.Api.Features.Auth.Models;
 using MonavixxHub.Api.Features.Flashcards.Models;
-using MonavixxHub.Api.Features.FlashcardsStudy.Models;
+using MonavixxHub.Api.Features.FlashcardStudy.Models;
 using MonavixxHub.Api.Features.Images.Models;
 
 namespace MonavixxHub.Api.Infrastructure;
@@ -21,5 +21,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<FlashcardSet> FlashcardSets => Set<FlashcardSet>();
     public DbSet<FlashcardSetUser> FlashcardSetUsers => Set<FlashcardSetUser>();
     public DbSet<RandomStudySession> RandomStudySessions => Set<RandomStudySession>();
+    public DbSet<FlashcardRandomStudySession> FlashcardRandomStudySessions => Set<FlashcardRandomStudySession>();
     
 }

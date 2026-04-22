@@ -1,3 +1,4 @@
+using MonavixxHub.Api.Features.Flashcards.Exceptions;
 using MonavixxHub.Api.Features.Flashcards.Models;
 
 namespace MonavixxHub.Api.Features.Flashcards.Services;
@@ -51,5 +52,7 @@ public interface IFlashcardSetEntryService
     /// <param name="limit">Number of flashcards per page.</param>
     /// <returns>Queryable collection of flashcards in the set for the specified page.</returns>
     IQueryable<Flashcard> GetFlashcardsInSet(Guid flashcardSetId, int page, int limit);
+
+    Task RemoveFlashcardFromSetAsync(Guid flashcardSetId, Guid flashcardId);
 }
 

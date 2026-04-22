@@ -19,3 +19,5 @@ public class LoginDtoValidator : AbstractValidator<LoginDto>
             .When(d => !emailCheckService.IsValid(d.UsernameOrEmail));
     }
 }
+
+// todo: Result pattern (FluentResults)

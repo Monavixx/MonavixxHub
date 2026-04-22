@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using MonavixxHub.Api.Common.Events;
+using MonavixxHub.Api.Features.Flashcards.Events;
 using MonavixxHub.Api.Features.Flashcards.Exceptions;
 using MonavixxHub.Api.Features.Flashcards.Models;
 using MonavixxHub.Api.Infrastructure;
@@ -8,7 +10,8 @@ namespace MonavixxHub.Api.Features.Flashcards.Services;
 /// <summary>
 /// Handles flashcard sets' entries' creation, retrieval, updating, deletion
 /// </summary>
-public class FlashcardSetEntryService (AppDbContext dbContext, ILogger<FlashcardSetEntryService> logger) : IFlashcardSetEntryService
+public class FlashcardSetEntryService (AppDbContext dbContext, ILogger<FlashcardSetEntryService> logger,
+    IDomainEventPublisher eventPublisher) : IFlashcardSetEntryService
 {
     /// <summary>
     /// Adds the specified flashcard to the specified flashcard set at the given position.
@@ -72,5 +75,15 @@ public class FlashcardSetEntryService (AppDbContext dbContext, ILogger<Flashcard
             .Take(limit)
             .Where(fse => fse.FlashcardSetId == flashcardSetId)
             .Select(fse => fse.Flashcard);
+    }
+
+    public async Task RemoveFlashcardFromSetAsync(Guid flashcardSetId, Guid flashcardId)
+    {
+        await using var _ = await dbContext.Database.BeginTransactionAsync();
+        if (await dbContext.FlashcardSetEntries
+                .Where(fse => fse.FlashcardSetId == flashcardSetId && fse.FlashcardId == flashcardId)
+                .ExecuteDeleteAsync() is 0)
+            throw new FlashcardNotFoundInSetException();
+        await eventPublisher.PublishAsync(new FlashcardRemovedFromSetEvent(flashcardSetId,flashcardId));
     }
 }

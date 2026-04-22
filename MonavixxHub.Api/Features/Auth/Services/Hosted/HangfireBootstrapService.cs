@@ -8,7 +8,8 @@ public class HangfireBootstrapService (IRecurringJobManagerV2 recurringJobManage
     public Task StartAsync(CancellationToken cancellationToken)
     {
         recurringJobManager.AddOrUpdate<ISessionCleaningJob>("session-cleaning",
-            s => s.CleanAsync(), Cron.Minutely);
+            s => s.CleanAsync(), Cron.Daily);
+        recurringJobManager.TriggerJob("session-cleaning");
         
         return Task.CompletedTask;
     }

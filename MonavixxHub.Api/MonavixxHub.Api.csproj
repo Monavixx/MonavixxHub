@@ -12,7 +12,7 @@
         <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
         <PackageReference Include="Hangfire.AspNetCore" Version="1.8.23" />
         <PackageReference Include="Hangfire.PostgreSql" Version="1.21.1" />
-        <PackageReference Include="MailKit" Version="4.15.1" />
+        <PackageReference Include="MailKit" Version="4.16.0" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.6" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.6" />
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.6" />
@@ -37,6 +37,7 @@
     <ItemGroup>
       <Folder Include="downloaded_images\" />
       <Folder Include="logs\" />
+      <Folder Include="Migrations\" />
     </ItemGroup>
 
 </Project>
