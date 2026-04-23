@@ -88,7 +88,7 @@ public class FlashcardSetService (AppDbContext dbContext, ILogger<FlashcardSetSe
         bool includeSubsets = false)
     {
         logger.LogDebug("Getting FlashcardSet [{FlashcardSetId}]...", setId);
-        var query = dbContext.FlashcardSets.Where(fs => fs.Id == setId);
+        var query = dbContext.FlashcardSets.AsNoTracking().Where(fs => fs.Id == setId);
         if (includeEntries)
         {
             if (thenIncludeFlashcard)
@@ -108,11 +108,11 @@ public class FlashcardSetService (AppDbContext dbContext, ILogger<FlashcardSetSe
     {
         logger.LogDebug("Getting FlashcardSet [{FlashcardSetId}] with entries page...", setId);
         var query = dbContext.FlashcardSets
+            .AsNoTracking()
             .Where(fs => fs.Id == setId);
         if (includeSubsets)
             query = query.Include(fs => fs.Subsets);
-
-
+        
         var result = await query.Select(fs => new
         {
             FlashcardSet = fs,
@@ -130,10 +130,13 @@ public class FlashcardSetService (AppDbContext dbContext, ILogger<FlashcardSetSe
     }
 
     public IQueryable<FlashcardSet> GetUsersSets(UserIdType userId)
-        => dbContext.FlashcardSets.Where(fs => fs.OwnerId == userId);
+        => dbContext.FlashcardSets.AsNoTracking().Where(fs => fs.OwnerId == userId);
 
     public IQueryable<FlashcardSet> GetLearningSets(UserIdType userId)
-        => dbContext.FlashcardSetUsers.Where(fsu => fsu.UserId == userId).Select(fsu => fsu.FlashcardSet);
+        => dbContext.FlashcardSetUsers.AsNoTracking().Where(fsu => fsu.UserId == userId).Select(fsu => fsu.FlashcardSet);
+
+    public IQueryable<FlashcardSet> GetPublicSets(UserIdType userId)
+        => dbContext.FlashcardSets.AsNoTracking().Where(fs => fs.IsPublic && fs.OwnerId != userId);
 
     /// <summary>
     /// Ensures that the <see cref="FlashcardSet.Entries"/> collection is loaded,

@@ -115,4 +115,11 @@ public class FlashcardSetController(IFlashcardSetService flashcardSetService)
             .GetLearningSets(User.GetUserId())
             .Include(s => s.Subsets)
             .Select(GetFlashcardSetDto.Projection);
+    
+    [HttpGet("public")]
+    public IQueryable<GetFlashcardSetDto> GetPublicSets()
+        => flashcardSetService
+            .GetPublicSets(User.GetUserId())
+            .Include(s => s.Subsets)
+            .Select(GetFlashcardSetDto.Projection);
 }

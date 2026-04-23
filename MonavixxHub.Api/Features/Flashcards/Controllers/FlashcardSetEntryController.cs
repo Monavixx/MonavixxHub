@@ -3,10 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using MonavixxHub.Api.Common;
 using MonavixxHub.Api.Features.Flashcards.Authorization;
 using MonavixxHub.Api.Features.Flashcards.Authorization.Filters;
-using MonavixxHub.Api.Features.Flashcards.DTOs;
 using MonavixxHub.Api.Features.Flashcards.DTOs.Request;
 using MonavixxHub.Api.Features.Flashcards.DTOs.Response;
-using MonavixxHub.Api.Features.Flashcards.Models;
 using MonavixxHub.Api.Features.Flashcards.Services;
 
 namespace MonavixxHub.Api.Features.Flashcards.Controllers;
@@ -70,7 +68,7 @@ public class FlashcardSetEntryController(
     )
     {
         var (flashcardSet, flashcardDtos) =
-            await flashcardSetService.GetWithEntriesPageAsync<GetFlashcardDto>(flashcardSetId, page, limit,
+            await flashcardSetService.GetWithEntriesPageAsync(flashcardSetId, page, limit,
                 GetFlashcardDto.Projection);
         var authRes =
             await authorizationService.AuthorizeAsync(User, flashcardSet, FlashcardSetAccessRequirement.ReadAccess);
@@ -79,20 +77,12 @@ public class FlashcardSetEntryController(
     }
 
     [HttpDelete("{flashcardId:guid}")]
+    [FlashcardSetAuthorizationFilter(FlashcardSetAccessType.Edit, FlashcardSetIdArgName = nameof(flashcardSetId))]
     public async Task<IActionResult> RemoveFlashcardFromSet(Guid flashcardSetId, Guid flashcardId,
         [FromServices] IFlashcardSetService flashcardSetService,
         [FromServices] IFlashcardService flashcardService,
         [FromServices] IAuthorizationService authorizationService)
     {
-        var flashcardSet = await flashcardSetService.GetAsync(flashcardSetId);
-        var authorizationResult =
-            await authorizationService.AuthorizeAsync(User, flashcardSet, Requirements.FlashcardSet.EditAccess);
-        if (!authorizationResult.Succeeded) return Forbid();
-        var flashcard = await flashcardService.GetAsync(flashcardId);
-        authorizationResult =
-            await authorizationService.AuthorizeAsync(User, flashcard, Requirements.Flashcard.EditAccess);
-        if (!authorizationResult.Succeeded) return Forbid();
-
         await flashcardSetEntryService.RemoveFlashcardFromSetAsync(flashcardSetId, flashcardId);
         return NoContent();
     }

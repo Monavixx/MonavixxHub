@@ -65,6 +65,8 @@ public interface IFlashcardSetService
     /// <param name="userId">The learner's user ID.</param>
     /// <returns>Queryable collection of flashcard sets the user is learning.</returns>
     IQueryable<FlashcardSet> GetLearningSets(UserIdType userId);
+    
+    IQueryable<FlashcardSet> GetPublicSets(UserIdType userId);
 
     /// <summary>
     /// Ensures that the entries collection is loaded, sorted, and each entry's flashcard is loaded.
